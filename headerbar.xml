@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <object class="GtkHeaderBar" id="headerbar">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="show_close_button">True</property>
+        <child>
+            <object class="GtkButton" id="button1">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image1</property>
+            </object>
+            <packing>
+                <property name="pack-type">start</property>
+            </packing>
+        </child>
+        <child>
+            <object class="GtkButton" id="button2">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image2</property>
+            </object>
+            <packing>
+                <property name="pack-type">start</property>
+            </packing>
+        </child>
+        <child>
+            <object class="GtkButton" id="button3">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image3</property>
+            </object>
+            <packing>
+                <property name="pack-type">start</property>
+            </packing>
+        </child>
+        <child>
+            <object class="GtkButton" id="button4">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="image">image4</property>
+            </object>
+            <packing>
+                <property name="pack-type">end</property>
+            </packing>
+        </child>
+    </object>
+    <object class="GtkSizeGroup" id="header_bar_size_group">
+        <property name="mode">horizontal</property>
+        <widgets>
+            <widget name="button1"/>
+            <widget name="button2"/>
+            <widget name="button3"/>
+            <widget name="button4"/>
+        </widgets>
+    </object>
+    <object class="GtkImage" id="image1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="icon_name">document-open</property>
+    </object>
+    <object class="GtkImage" id="image2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="icon_name">document-save</property>
+    </object>
+    <object class="GtkImage" id="image3">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="icon_name">mail-send-symbolic</property>
+    </object>
+    <object class="GtkImage" id="image4">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="icon_name">view-more-symbolic</property>
+    </object>
+</interface>
