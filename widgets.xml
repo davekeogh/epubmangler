@@ -63,7 +63,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry1">
+                    <object class="GtkEntry" id="title_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                     </object>
@@ -74,7 +74,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry2">
+                    <object class="GtkEntry" id="author_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                     </object>
@@ -85,7 +85,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry3">
+                    <object class="GtkEntry" id="series_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                     </object>
@@ -95,7 +95,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkSpinButton" id="spinbutton1">
+                    <object class="GtkSpinButton" id="series_spinbutton">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                     </object>
@@ -105,7 +105,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry4">
+                    <object class="GtkEntry" id="publisher_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                     </object>
@@ -128,7 +128,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry5">
+                    <object class="GtkEntry" id="tags_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="secondary_icon_name">add</property>
@@ -145,7 +145,7 @@
                         <property name="can_focus">True</property>
                         <property name="vexpand">True</property>
                         <child>
-                            <object class="GtkTreeView" id="treeview1">
+                            <object class="GtkTreeView" id="treeview">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="headers_visible">False</property>
@@ -175,7 +175,7 @@
                     </packing>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry6">
+                    <object class="GtkEntry" id="date_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="secondary_icon_name">gtk-edit</property>
@@ -203,7 +203,7 @@
             </packing>
         </child>
         <child>
-            <object class="GtkImage" id="image1">
+            <object class="GtkImage" id="cover_image">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
             </object>

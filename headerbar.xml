@@ -5,7 +5,7 @@
         <property name="can_focus">False</property>
         <property name="show_close_button">True</property>
         <child>
-            <object class="GtkButton" id="button1">
+            <object class="GtkButton" id="open_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -16,7 +16,7 @@
             </packing>
         </child>
         <child>
-            <object class="GtkButton" id="button2">
+            <object class="GtkButton" id="save_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -27,7 +27,7 @@
             </packing>
         </child>
         <child>
-            <object class="GtkButton" id="button3">
+            <object class="GtkButton" id="send_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -38,7 +38,7 @@
             </packing>
         </child>
         <child>
-            <object class="GtkButton" id="button4">
+            <object class="GtkButton" id="more_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -52,10 +52,10 @@
     <object class="GtkSizeGroup" id="header_bar_size_group">
         <property name="mode">horizontal</property>
         <widgets>
-            <widget name="button1"/>
-            <widget name="button2"/>
-            <widget name="button3"/>
-            <widget name="button4"/>
+            <widget name="open_button"/>
+            <widget name="save_button"/>
+            <widget name="send_button"/>
+            <widget name="more_button"/>
         </widgets>
     </object>
     <object class="GtkImage" id="image1">

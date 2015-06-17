@@ -35,19 +35,19 @@ class Window(Gtk.ApplicationWindow):
             if item.tag == '{}subject'.format(DC_NAMESPACE):
                 self.liststore.append([item.text])
 
-        self.widgets.get_object('treeview1').set_model(self.liststore)
+        self.widgets.get_object('treeview').set_model(self.liststore)
 
         renderer = Gtk.CellRendererText()
         renderer.set_property('editable', True)
 
         column = Gtk.TreeViewColumn('Tags', renderer, text=0)
-        self.widgets.get_object('treeview1').append_column(column)
+        self.widgets.get_object('treeview').append_column(column)
 
         renderer.connect('edited', self.text_edited)
 
     def set_cover_image(self):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 400, True)
-        self.widgets.get_object('image1').set_from_pixbuf(pixbuf)
+        self.widgets.get_object('cover_image').set_from_pixbuf(pixbuf)
 
     def text_edited(self, widget, path, text):
         if not len(text):
