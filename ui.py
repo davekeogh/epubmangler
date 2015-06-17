@@ -15,6 +15,8 @@ class Window(Gtk.ApplicationWindow):
         builder.add_from_file('headerbar.xml')
         self.set_titlebar(builder.get_object('headerbar'))
 
+        builder.get_object('more_button').grab_focus()
+
         self.connect('delete-event', self.quit)
         self.set_title(self.epub.file_path)
 
