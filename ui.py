@@ -3,6 +3,7 @@ from globals import *
 
 
 class Window(Gtk.ApplicationWindow):
+
     def __init__(self, epub):
         self.widgets = None
         self.liststore = None
@@ -49,7 +50,10 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('image1').set_from_pixbuf(pixbuf)
 
     def text_edited(self, widget, path, text):
-        self.liststore[path][0] = text
+        if not len(text):
+            self.liststore.remove(self.liststore.get_iter(path))
+        else:
+            self.liststore[path][0] = text
 
     def quit(self, event, user_data):
         del self.epub

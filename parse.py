@@ -16,6 +16,7 @@ class BadEPubFile(Exception):
 
 
 class EPub(object):
+
     def __init__(self, path, debug=False):
         self.save_changes = False
         self.file_path = path
