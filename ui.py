@@ -24,9 +24,16 @@ class Window(Gtk.ApplicationWindow):
         self.add(self.widgets.get_object('box1'))
 
         self.populate_tags_list()
+        self.populate_fields()
         self.set_cover_image()
 
         self.show_all()
+
+    def populate_fields(self):
+        self.widgets.get_object('title_entry').set_text(self.epub.title)
+        self.widgets.get_object('author_entry').set_text(self.epub.author)
+        self.widgets.get_object('publisher_entry').set_text(self.epub.publisher)
+        self.widgets.get_object('date_entry').set_text(self.epub.date)
 
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)

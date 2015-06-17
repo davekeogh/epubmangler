@@ -28,6 +28,11 @@ class EPub(object):
         self.fields = []
         self.manifest = []
 
+        self.title = ''
+        self.author = ''
+        self.publisher = ''
+        self.date = ''
+
         self.extract()
         self.read_content()
 
@@ -60,6 +65,15 @@ class EPub(object):
 
         for item in metadata[0]:
             self.fields.append(EPubMetadata(tag=item.tag, attrib=item.attrib, text=item.text))
+
+            if item.tag == '{}title'.format(DC_NAMESPACE):
+                self.title = item.text
+            elif item.tag == '{}creator'.format(DC_NAMESPACE) and item.attrib.get('{}role'.format(OPF_NAMESPACE)) == 'aut':
+                self.author = item.text
+            elif item.tag == '{}publisher'.format(DC_NAMESPACE):
+                self.publisher = item.text
+            elif item.tag == '{}date'.format(DC_NAMESPACE):
+                self.date = item.text
 
         manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
 
