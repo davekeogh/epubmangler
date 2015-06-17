@@ -22,7 +22,8 @@ class EPub(object):
         self.file_path = path
         self.temp_dir = ''
         self.temp_cover = ''
-        self.files = ()
+        self.files = []
+        self.files_root = ''
         self.tree = None
         self.root = None
         self.fields = []
@@ -52,10 +53,17 @@ class EPub(object):
         except zipfile.BadZipfile:
             raise BadEPubFile('File is not an epub file')
 
-        self.files = os.walk(self.temp_dir)
+        for root, dirs, names in os.walk(self.temp_dir):
+            for name in names:
+                self.files.append(os.path.join(root, name))
+
+        if os.path.exists(os.path.join(self.temp_dir, 'OEBPS')):
+            self.files_root = os.path.join(self.temp_dir, 'OEBPS')
+        else:
+            self.files_root =  self.temp_dir
 
     def read_content(self):
-        self.tree = ETree.parse(os.path.join(self.temp_dir, 'content.opf'))
+        self.tree = ETree.parse(os.path.join(self.files_root, 'content.opf'))
         self.root = self.tree.getroot()
 
         metadata = self.root.findall('{}metadata'.format(OPF_NAMESPACE))
@@ -84,7 +92,7 @@ class EPub(object):
             self.manifest.append(EPubMetadata(tag=item.tag, attrib=item.attrib, text=item.text))
 
             if item.attrib['id'] == 'cover':
-                self.temp_cover = os.path.join(self.temp_dir, item.attrib['href'])
+                self.temp_cover = os.path.join(self.files_root, item.attrib['href'])
 
     def debug(self):
         print(self.file_path)
