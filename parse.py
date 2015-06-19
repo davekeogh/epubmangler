@@ -80,7 +80,7 @@ class EPub(object):
                 self.author = item.text
             elif item.tag == '{}publisher'.format(DC_NAMESPACE):
                 self.publisher = item.text
-            elif item.tag == '{}date'.format(DC_NAMESPACE):
+            elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get('{}event'.format(OPF_NAMESPACE)) != 'modification':
                 self.date = item.text
 
         manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
