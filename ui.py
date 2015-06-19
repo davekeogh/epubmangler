@@ -38,7 +38,7 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('title_entry').set_text(self.epub.title)
         self.widgets.get_object('author_entry').set_text(self.epub.author)
         self.widgets.get_object('publisher_entry').set_text(self.epub.publisher)
-        self.widgets.get_object('date_entry').set_text(self.epub.date)
+        self.widgets.get_object('date_entry').set_text(self.epub.get_date_as_string())
 
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
@@ -63,13 +63,30 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('date_entry').connect('icon-press', self.toggle_calendar)
 
         self.calendar = Gtk.Calendar()
+        self.calendar.select_month(self.epub.date.tm_mon - 1, self.epub.date.tm_year)
+        self.calendar.select_day(self.epub.date.tm_mday)
+
+        self.calendar.connect('month-changed', self.calendar_changed)
+        self.calendar.connect('day-selected', self.calendar_changed)
+        self.calendar.connect('day-selected-double-click', self.calendar_changed_then_toggle)
+        self.calendar.connect('next-year', self.calendar_changed)
+        self.calendar.connect('prev-year', self.calendar_changed)
+
         self.popover.add(self.calendar)
+
+    def calendar_changed(self, calendar):
+        date = calendar.get_date()
+        self.widgets.get_object('date_entry').set_text('{}-{}-{}'.format(date[0], date[1], date[2]))
 
     def toggle_calendar(self, widget, icon, event):
         if self.popover.get_visible():
             self.popover.hide()
         else:
             self.popover.show_all()
+
+    def calendar_changed_then_toggle(self, calendar):
+        self.calendar_changed(calendar)
+        self.toggle_calendar(self, None, None)
 
     def set_cover_image(self):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 400, True)

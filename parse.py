@@ -4,6 +4,7 @@ import os.path
 import tempfile
 import shutil
 import collections
+import time
 import xml.etree.ElementTree as ETree
 from globals import *
 
@@ -81,7 +82,7 @@ class EPub(object):
             elif item.tag == '{}publisher'.format(DC_NAMESPACE):
                 self.publisher = item.text
             elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get('{}event'.format(OPF_NAMESPACE)) != 'modification':
-                self.date = item.text
+                self.date = time.strptime(item.text, '%Y-%m-%dT%H:%M:%S+00:00')
 
         manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
 
@@ -93,6 +94,9 @@ class EPub(object):
 
             if item.attrib['id'] == 'cover':
                 self.temp_cover = os.path.join(self.files_root, item.attrib['href'])
+
+    def get_date_as_string(self):
+        return '{}-{}-{}'.format(self.date.tm_year, self.date.tm_mon, self.date.tm_mday)
 
     def debug(self):
         print(self.file_path)
