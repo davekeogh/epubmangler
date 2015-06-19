@@ -7,6 +7,8 @@ class Window(Gtk.ApplicationWindow):
     def __init__(self, epub):
         self.widgets = None
         self.liststore = None
+        self.popover = None
+        self.calendar = None
         self.epub = epub
 
         Gtk.ApplicationWindow.__init__(self)
@@ -28,6 +30,7 @@ class Window(Gtk.ApplicationWindow):
         self.populate_tags_list()
         self.populate_fields()
         self.set_cover_image()
+        self.create_calendar_popover()
 
         self.show_all()
 
@@ -53,6 +56,20 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('treeview').append_column(column)
 
         renderer.connect('edited', self.text_edited)
+
+    def create_calendar_popover(self):
+        self.popover = Gtk.Popover()
+        self.popover.set_relative_to(self.widgets.get_object('date_entry'))
+        self.widgets.get_object('date_entry').connect('icon-press', self.toggle_calendar)
+
+        self.calendar = Gtk.Calendar()
+        self.popover.add(self.calendar)
+
+    def toggle_calendar(self, widget, icon, event):
+        if self.popover.get_visible():
+            self.popover.hide()
+        else:
+            self.popover.show_all()
 
     def set_cover_image(self):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 400, True)
