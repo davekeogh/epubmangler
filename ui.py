@@ -28,6 +28,9 @@ class Window(Gtk.ApplicationWindow):
         self.add(self.widgets.get_object('box1'))
         self.widgets.get_object('box1').set_property('expand', True)
 
+        self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
+        self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
+
         self.populate_tags_list()
         self.populate_fields()
         self.set_cover_image()
@@ -100,6 +103,18 @@ class Window(Gtk.ApplicationWindow):
             self.liststore.remove(self.liststore.get_iter(path))
         else:
             self.liststore[path][0] = text
+
+    def add_tag(self, widget, icon=None, event=None):
+        text = widget.get_text()
+        widget.set_text('')
+
+        if len(text) > 1:
+            for row in self.liststore:
+                if row[0] == text:
+                    return
+
+            iter = self.liststore.append()
+            self.liststore.set_value(iter, 0, text)
 
     def quit(self, event, user_data):
         del self.epub
