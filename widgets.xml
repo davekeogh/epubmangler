@@ -7,7 +7,7 @@
         <property name="margin_end">6</property>
         <property name="margin_top">6</property>
         <property name="margin_bottom">6</property>
-        <property name="spacing">12</property>
+        <property name="spacing">6</property>
         <child>
             <object class="GtkGrid" id="grid1">
                 <property name="visible">True</property>
@@ -88,6 +88,7 @@
                     <object class="GtkEntry" id="series_entry">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="hexpand">True</property>
                     </object>
                     <packing>
                         <property name="left_attach">1</property>
@@ -99,6 +100,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="adjustment">series_adjustment</property>
+                        <property name="expand">False</property>
                     </object>
                     <packing>
                         <property name="left_attach">2</property>
@@ -144,7 +146,7 @@
                     <object class="GtkScrolledWindow" id="scrolledwindow1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="vexpand">True</property>
+                        <property name="expand">True</property>
                         <child>
                             <object class="GtkTreeView" id="treeview">
                                 <property name="visible">True</property>
@@ -198,7 +200,7 @@
                 </child>
             </object>
             <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">0</property>
             </packing>
@@ -209,7 +211,7 @@
                 <property name="can_focus">False</property>
             </object>
             <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
             </packing>

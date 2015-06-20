@@ -26,6 +26,7 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.add_from_file('widgets.xml')
 
         self.add(self.widgets.get_object('box1'))
+        self.widgets.get_object('box1').set_property('expand', True)
 
         self.populate_tags_list()
         self.populate_fields()
@@ -39,6 +40,8 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('author_entry').set_text(self.epub.author)
         self.widgets.get_object('publisher_entry').set_text(self.epub.publisher)
         self.widgets.get_object('date_entry').set_text(self.epub.get_date_as_string())
+        self.widgets.get_object('series_entry').set_text(self.epub.series)
+        self.widgets.get_object('series_spinbutton').set_value(self.epub.series_index)
 
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
@@ -89,7 +92,7 @@ class Window(Gtk.ApplicationWindow):
         self.toggle_calendar(self, None, None)
 
     def set_cover_image(self):
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 400, True)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 500, True)
         self.widgets.get_object('cover_image').set_from_pixbuf(pixbuf)
 
     def text_edited(self, widget, path, text):
