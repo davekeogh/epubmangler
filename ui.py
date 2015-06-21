@@ -6,18 +6,21 @@ class Window(Gtk.ApplicationWindow):
 
     def __init__(self, epub):
         self.widgets = None
+        self.header_widgets = None
         self.liststore = None
+        self.image = None
+        self.image_size = None
         self.popover = None
         self.calendar = None
         self.epub = epub
 
         Gtk.ApplicationWindow.__init__(self)
 
-        builder = Gtk.Builder()
-        builder.add_from_file('headerbar.xml')
-        self.set_titlebar(builder.get_object('headerbar'))
+        self.header_widgets = Gtk.Builder()
+        self.header_widgets.add_from_file('headerbar.xml')
+        self.set_titlebar(self.header_widgets.get_object('headerbar'))
 
-        builder.get_object('more_button').grab_focus()
+        self.header_widgets.get_object('more_button').grab_focus()
 
         self.connect('delete-event', self.quit)
         self.set_title(self.epub.file_path)
@@ -28,6 +31,9 @@ class Window(Gtk.ApplicationWindow):
         self.add(self.widgets.get_object('box1'))
         self.widgets.get_object('box1').set_property('expand', True)
 
+        self.image = self.widgets.get_object('cover_image')
+        self.connect('configure-event', self.resize_image)
+
         self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
         self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
 
@@ -35,6 +41,8 @@ class Window(Gtk.ApplicationWindow):
         self.populate_fields()
         self.set_cover_image()
         self.create_calendar_popover()
+
+        self.header_widgets.get_object('more_button').connect('clicked', self.toggle_infobar)
 
         self.show_all()
 
@@ -94,9 +102,19 @@ class Window(Gtk.ApplicationWindow):
         self.calendar_changed(calendar)
         self.toggle_calendar(self, None, None)
 
-    def set_cover_image(self):
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, -1, 500, True)
-        self.widgets.get_object('cover_image').set_from_pixbuf(pixbuf)
+    def set_cover_image(self, x=-1, y=500):
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, x, y, True)
+        self.image.set_from_pixbuf(pixbuf)
+
+        allocation = self.image.get_allocation()
+        self.image_size = (allocation.height, allocation.width)
+
+    def resize_image(self, widget, event):
+        allocation = self.image.get_allocation()
+
+        if allocation.width != self.image_size[0] or allocation.height != self.image_size[1]:
+            self.set_cover_image(x=allocation.width, y=allocation.height)
+
 
     def text_edited(self, widget, path, text):
         if not len(text):
@@ -115,6 +133,12 @@ class Window(Gtk.ApplicationWindow):
 
             iter = self.liststore.append()
             self.liststore.set_value(iter, 0, text)
+
+    def toggle_infobar(self, widget):
+        if self.widgets.get_object('revealer').get_child_revealed():
+            self.widgets.get_object('revealer').set_reveal_child(False)
+        else:
+            self.widgets.get_object('revealer').set_reveal_child(True)
 
     def quit(self, event, user_data):
         del self.epub
