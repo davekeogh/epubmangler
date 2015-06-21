@@ -33,7 +33,9 @@ class EPub(object):
         self.title = ''
         self.author = ''
         self.publisher = ''
-        self.date = ''
+        self.date = None
+        self.series = ''
+        self.series_index = 1
 
         self.extract()
         self.read_content()
@@ -83,6 +85,10 @@ class EPub(object):
                 self.publisher = item.text
             elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get('{}event'.format(OPF_NAMESPACE)) != 'modification':
                 self.date = time.strptime(item.text, '%Y-%m-%dT%H:%M:%S+00:00')
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series':
+                self.series = item.attrib.get('content')
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
+                self.series_index = int(item.attrib.get('content'))
 
         manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
 
@@ -118,3 +124,12 @@ class EPub(object):
 
     def set(self, tag, attrib=None, text=None):
         namespaced_tag = '{0}{1}'.format(DC_NAMESPACE, tag)
+
+        for item in self.fields:
+            if item.tag == namespaced_tag:
+                item.tag = namespaced_tag
+                if attrib:
+                    item.attrib = attrib
+                if text:
+                    item.text = text
+                break
