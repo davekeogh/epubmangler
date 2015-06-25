@@ -54,6 +54,8 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('series_entry').set_text(self.epub.series)
         self.widgets.get_object('series_spinbutton').set_value(self.epub.series_index)
 
+        self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
+
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
 
