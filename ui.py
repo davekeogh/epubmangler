@@ -34,16 +34,15 @@ class Window(Gtk.ApplicationWindow):
         self.image = self.widgets.get_object('cover_image')
         self.connect('configure-event', self.resize_image)
 
-        self.widgets.get_object('series_entry').connect('changed', self.toggle_series_index_spinbutton)
-        self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
-        self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
-
         self.populate_tags_list()
         self.populate_fields()
         self.set_cover_image()
         self.create_calendar_popover()
 
         self.header_widgets.get_object('more_button').connect('clicked', self.toggle_infobar)
+        self.widgets.get_object('series_entry').connect('changed', self.toggle_series_index_spinbutton)
+        self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
+        self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
 
         self.show_all()
 
