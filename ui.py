@@ -34,6 +34,7 @@ class Window(Gtk.ApplicationWindow):
         self.image = self.widgets.get_object('cover_image')
         self.connect('configure-event', self.resize_image)
 
+        self.widgets.get_object('series_entry').connect('changed', self.toggle_series_index_spinbutton)
         self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
         self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
 
@@ -115,7 +116,6 @@ class Window(Gtk.ApplicationWindow):
         if allocation.width != self.image_size[0] or allocation.height != self.image_size[1]:
             self.set_cover_image(x=allocation.width, y=allocation.height)
 
-
     def text_edited(self, widget, path, text):
         if not len(text):
             self.liststore.remove(self.liststore.get_iter(path))
@@ -133,6 +133,12 @@ class Window(Gtk.ApplicationWindow):
 
             iter = self.liststore.append()
             self.liststore.set_value(iter, 0, text)
+
+    def toggle_series_index_spinbutton(self, entry):
+        if not len(entry.get_text()):
+            self.widgets.get_object('series_spinbutton').set_sensitive(False)
+        else:
+            self.widgets.get_object('series_spinbutton').set_sensitive(True)
 
     def toggle_infobar(self, widget):
         if self.widgets.get_object('revealer').get_child_revealed():
