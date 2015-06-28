@@ -8,7 +8,6 @@ import time
 import xml.etree.ElementTree as ETree
 from globals import *
 
-
 EPubMetadata = collections.namedtuple('EPubMetadata', 'tag attrib text')
 
 
@@ -17,7 +16,6 @@ class BadEPubFile(Exception):
 
 
 class EPub(object):
-
     def __init__(self, path, debug=False):
         self.save_changes = False
         self.file_path = path
@@ -63,7 +61,7 @@ class EPub(object):
         if os.path.exists(os.path.join(self.temp_dir, 'OEBPS')):
             self.files_root = os.path.join(self.temp_dir, 'OEBPS')
         else:
-            self.files_root =  self.temp_dir
+            self.files_root = self.temp_dir
 
     def read_content(self):
         self.tree = ETree.parse(os.path.join(self.files_root, 'content.opf'))
@@ -79,11 +77,13 @@ class EPub(object):
 
             if item.tag == '{}title'.format(DC_NAMESPACE):
                 self.title = item.text
-            elif item.tag == '{}creator'.format(DC_NAMESPACE) and item.attrib.get('{}role'.format(OPF_NAMESPACE)) == 'aut':
+            elif item.tag == '{}creator'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}role'.format(OPF_NAMESPACE)) == 'aut':
                 self.author = item.text
             elif item.tag == '{}publisher'.format(DC_NAMESPACE):
                 self.publisher = item.text
-            elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get('{}event'.format(OPF_NAMESPACE)) != 'modification':
+            elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}event'.format(OPF_NAMESPACE)) != 'modification':
                 self.date = time.strptime(item.text, '%Y-%m-%dT%H:%M:%S+00:00')
             elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series':
                 self.series = item.attrib.get('content')
