@@ -41,6 +41,7 @@ class Window(Gtk.ApplicationWindow):
 
         self.header_widgets.get_object('more_button').connect('clicked', self.toggle_infobar)
         self.widgets.get_object('series_entry').connect('changed', self.toggle_series_index_spinbutton)
+        self.widgets.get_object('tags_entry').connect('changed', self.toggle_tags_add_button)
         self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
         self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
 
@@ -55,6 +56,7 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('series_spinbutton').set_value(self.epub.series_index)
 
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
+        self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
 
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
@@ -146,6 +148,12 @@ class Window(Gtk.ApplicationWindow):
             self.widgets.get_object('revealer').set_reveal_child(False)
         else:
             self.widgets.get_object('revealer').set_reveal_child(True)
+
+    def toggle_tags_add_button(self, entry):
+        if not len(entry.get_text()):
+            entry.set_icon_sensitive(Gtk.EntryIconPosition.SECONDARY, False)
+        else:
+            entry.set_icon_sensitive(Gtk.EntryIconPosition.SECONDARY, True)
 
     def quit(self, event, user_data):
         del self.epub
