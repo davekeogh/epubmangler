@@ -166,6 +166,12 @@ class Window(Gtk.ApplicationWindow):
 
         target.set_date_for_export(self.widgets.get_object('date_entry').get_text())
 
+        tags = []
+
+        for row in self.liststore:
+            tags.append(row[0])
+
+        target.update_tags(tags)
 
     def quit(self, event, user_data):
         del self.epub
