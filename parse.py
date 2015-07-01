@@ -117,6 +117,8 @@ class EPub(object):
         for tag in tags:
             new.append(EPubMetadata(tag='{}subject'.format(DC_NAMESPACE), text=tag))
 
+        self.fields = new
+
     def debug(self):
         print(self.file_path)
 
