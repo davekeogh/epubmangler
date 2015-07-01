@@ -44,6 +44,7 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('tags_entry').connect('changed', self.toggle_tags_add_button)
         self.widgets.get_object('tags_entry').connect('activate', self.add_tag)
         self.widgets.get_object('tags_entry').connect('icon_press', self.add_tag)
+        self.widgets.get_object('infobar').connect('response', self.toggle_infobar)
 
         self.show_all()
 
@@ -143,7 +144,7 @@ class Window(Gtk.ApplicationWindow):
         else:
             self.widgets.get_object('series_spinbutton').set_sensitive(True)
 
-    def toggle_infobar(self, widget):
+    def toggle_infobar(self, widget, response=None):
         if self.widgets.get_object('revealer').get_child_revealed():
             self.widgets.get_object('revealer').set_reveal_child(False)
         else:
