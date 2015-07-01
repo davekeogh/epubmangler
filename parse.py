@@ -115,7 +115,7 @@ class EPub(object):
                 new.append(item)
 
         for tag in tags:
-            new.append(EPubMetadata(tag='{}subject'.format(DC_NAMESPACE), text=tag))
+            new.append(EPubMetadata(tag='{}subject'.format(DC_NAMESPACE), attrib={}, text=tag))
 
         self.fields = new
 

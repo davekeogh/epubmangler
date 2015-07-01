@@ -163,7 +163,7 @@ class Window(Gtk.ApplicationWindow):
         target.title = self.widgets.get_object('title_entry').get_text()
         target.author = self.widgets.get_object('author_entry').get_text()
         target.series = self.widgets.get_object('series_entry').get_text()
-        target.series_index = int(self.widgets.get_object('title_entry').get_text())
+        target.series_index = self.widgets.get_object('series_spinbutton').get_value()
 
         target.set_date_for_export(self.widgets.get_object('date_entry').get_text())
 
