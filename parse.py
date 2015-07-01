@@ -119,6 +119,27 @@ class EPub(object):
 
         self.fields = new
 
+    def update_fields(self):
+        for item in self.fields:
+            if item.tag == '{}title'.format(DC_NAMESPACE):
+                item.text = self.title
+            elif item.tag == '{}creator'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}role'.format(OPF_NAMESPACE)) == 'aut':
+                item.text = self.author
+            elif item.tag == '{}publisher'.format(DC_NAMESPACE):
+                item.text = self.publisher
+            elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}event'.format(OPF_NAMESPACE)) != 'modification':
+                item.text = self.date
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series':
+                item.text = self.series
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
+                item.text = str(self.series_index)
+
+    def write_opf(self, filename):
+        with open(filename, 'w') as file:
+            pass
+
     def debug(self):
         print(self.file_path)
 

@@ -173,6 +173,7 @@ class Window(Gtk.ApplicationWindow):
             tags.append(row[0])
 
         target.update_tags(tags)
+        target.update_fields()
 
     def quit(self, event, user_data):
         del self.epub
