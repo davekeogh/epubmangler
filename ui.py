@@ -155,6 +155,18 @@ class Window(Gtk.ApplicationWindow):
         else:
             entry.set_icon_sensitive(Gtk.EntryIconPosition.SECONDARY, True)
 
+    def export(self, target=None):
+        if not target:
+            target = self.epub
+
+        target.title = self.widgets.get_object('title_entry').get_text()
+        target.author = self.widgets.get_object('author_entry').get_text()
+        target.series = self.widgets.get_object('series_entry').get_text()
+        target.series_index = int(self.widgets.get_object('title_entry').get_text())
+
+        target.set_date_for_export(self.widgets.get_object('date_entry').get_text())
+
+
     def quit(self, event, user_data):
         del self.epub
         Gtk.main_quit()
