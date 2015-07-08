@@ -7,6 +7,8 @@ class Window(Gtk.ApplicationWindow):
     def __init__(self, epub):
         self.widgets = None
         self.header_widgets = None
+        self.menu_widgets = None
+        self.menu = None
         self.liststore = None
         self.image = None
         self.image_size = None
@@ -19,6 +21,9 @@ class Window(Gtk.ApplicationWindow):
         self.header_widgets = Gtk.Builder()
         self.header_widgets.add_from_file('headerbar.xml')
         self.set_titlebar(self.header_widgets.get_object('headerbar'))
+
+        self.menu_widgets = Gtk.Builder()
+        self.menu_widgets.add_from_file('menu.xml')
 
         self.header_widgets.get_object('more_button').grab_focus()
 
@@ -38,6 +43,7 @@ class Window(Gtk.ApplicationWindow):
         self.populate_fields()
         self.set_cover_image()
         self.create_calendar_popover()
+        self.create_menu_popover()
 
         self.widgets.get_object('series_entry').connect('changed', self.toggle_series_index_spinbutton)
         self.widgets.get_object('tags_entry').connect('changed', self.toggle_tags_add_button)
@@ -92,6 +98,11 @@ class Window(Gtk.ApplicationWindow):
 
         self.popover.add(self.calendar)
 
+    def create_menu_popover(self):
+        self.menu = self.menu_widgets.get_object('menu')
+        self.menu.set_relative_to(self.header_widgets.get_object('more_button'))
+        self.header_widgets.get_object('more_button').connect('pressed', self.toggle_menu)
+
     def calendar_changed(self, calendar):
         date = calendar.get_date()
         self.widgets.get_object('date_entry').set_text('{}-{}-{}'.format(date[0], date[1], date[2]))
@@ -101,6 +112,12 @@ class Window(Gtk.ApplicationWindow):
             self.popover.hide()
         else:
             self.popover.show_all()
+
+    def toggle_menu(self, widget):
+        if self.menu.get_visible():
+            self.menu.hide()
+        else:
+            self.menu.show_all()
 
     def calendar_changed_then_toggle(self, calendar):
         self.calendar_changed(calendar)

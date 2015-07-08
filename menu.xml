@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <object class="GtkPopoverMenu" id="menu">
+        <child>
+            <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="margin">10</property>
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="GtkModelButton">
+                        <property name="visible">True</property>
+                        <property name="text" translatable="yes">About</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkModelButton">
+                        <property name="visible">True</property>
+                        <property name="text" translatable="yes">Quit</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </object>
+</interface>
