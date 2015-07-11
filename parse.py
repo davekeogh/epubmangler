@@ -102,7 +102,7 @@ class EPub(object):
                 self.temp_cover = os.path.join(self.files_root, item.attrib['href'])
 
     def get_date_as_string(self):
-        return '{}-{}-{}'.format(self.date.tm_year, self.date.tm_mon, self.date.tm_mday)
+        return '{} - {} - {}'.format(self.date.tm_year, self.date.tm_mon, self.date.tm_mday)
 
     def set_date_for_export(self, date):
         self.date = '{}T00:00:00+00:00'.format(date)

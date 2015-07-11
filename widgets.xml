@@ -211,7 +211,7 @@
               <object class="GtkEntry" id="tags_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="secondary_icon_name">add</property>
+                <property name="secondary_icon_name">list-add-symbolic</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -258,7 +258,7 @@
               <object class="GtkEntry" id="date_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="secondary_icon_name">gtk-edit</property>
+                <property name="secondary_icon_name">go-down-symbolic</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>

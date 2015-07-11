@@ -5,5 +5,5 @@ from parse import EPub
 
 
 if __name__ == '__main__':
-    win = Window(EPub(sys.argv[1], debug=True))
+    win = Window(EPub(sys.argv[1], debug=False))
     Gtk.main()

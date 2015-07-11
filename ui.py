@@ -92,9 +92,9 @@ class Window(Gtk.ApplicationWindow):
 
         self.calendar.connect('month-changed', self.calendar_changed)
         self.calendar.connect('day-selected', self.calendar_changed)
-        self.calendar.connect('day-selected-double-click', self.calendar_changed_then_toggle)
         self.calendar.connect('next-year', self.calendar_changed)
         self.calendar.connect('prev-year', self.calendar_changed)
+        self.popover.connect('closed', self.calendar_changed_then_toggle)
 
         self.popover.add(self.calendar)
 
@@ -103,14 +103,16 @@ class Window(Gtk.ApplicationWindow):
         self.menu.set_relative_to(self.header_widgets.get_object('more_button'))
         self.header_widgets.get_object('more_button').connect('pressed', self.toggle_menu)
 
-    def calendar_changed(self, calendar):
-        date = calendar.get_date()
-        self.widgets.get_object('date_entry').set_text('{}-{}-{}'.format(date[0], date[1], date[2]))
+    def calendar_changed(self, widget):
+        date = self.calendar.get_date()
+        self.widgets.get_object('date_entry').set_text('{} - {} - {}'.format(date[0], date[1] + 1, date[2]))
 
     def toggle_calendar(self, widget, icon, event):
         if self.popover.get_visible():
+            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, 'go-down-symbolic')
             self.popover.hide()
         else:
+            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, 'go-up-symbolic')
             self.popover.show_all()
 
     def toggle_menu(self, widget):
@@ -119,8 +121,8 @@ class Window(Gtk.ApplicationWindow):
         else:
             self.menu.show_all()
 
-    def calendar_changed_then_toggle(self, calendar):
-        self.calendar_changed(calendar)
+    def calendar_changed_then_toggle(self, widget):
+        self.calendar_changed(self.calendar)
         self.toggle_calendar(self, None, None)
 
     def set_cover_image(self, x=-1, y=500):
