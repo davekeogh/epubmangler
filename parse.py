@@ -34,6 +34,7 @@ class EPub(object):
         self.date = None
         self.series = ''
         self.series_index = 1
+        self.description = ''
 
         self.extract()
         self.read_content()
@@ -89,6 +90,8 @@ class EPub(object):
                 self.series = item.attrib.get('content')
             elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
                 self.series_index = int(item.attrib.get('content'))
+            elif item.tag == '{}description'.format(DC_NAMESPACE):
+                self.description = item.text
 
         manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
 

@@ -64,6 +64,8 @@ class Window(Gtk.ApplicationWindow):
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
         self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
 
+        self.widgets.get_object('textbuffer1').set_text(self.epub.description)
+
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
 
