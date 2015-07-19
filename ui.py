@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gio, GdkPixbuf
+from gi.repository import Gtk, Gio, GdkPixbuf, GObject, GtkSource
 from globals import *
 
 
@@ -29,6 +29,8 @@ class Window(Gtk.ApplicationWindow):
 
         self.connect('delete-event', self.quit)
         self.set_title(self.epub.file_path)
+
+        GObject.type_register(GtkSource.View)
 
         self.widgets = Gtk.Builder()
         self.widgets.add_from_file('widgets.xml')
@@ -64,7 +66,11 @@ class Window(Gtk.ApplicationWindow):
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
         self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
 
-        self.widgets.get_object('textbuffer1').set_text(self.epub.description)
+        buffer = GtkSource.Buffer()
+        buffer.set_text(self.epub.description)
+        buffer.set_language(GtkSource.LanguageManager.get_default().get_language('html'))
+
+        self.widgets.get_object('gtksourceview1').set_buffer(buffer)
 
     def populate_tags_list(self):
         self.liststore = Gtk.ListStore(str)
