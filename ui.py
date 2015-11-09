@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gio, GdkPixbuf, GObject, GtkSource, WebKit2
+from gi.repository import Gtk, Gio, GdkPixbuf, GObject, WebKit2
 from globals import *
 
 
@@ -30,8 +30,6 @@ class Window(Gtk.ApplicationWindow):
 
         self.connect('delete-event', self.quit)
         self.set_title(self.epub.file_path)
-
-        GObject.type_register(GtkSource.View)
 
         self.widgets = Gtk.Builder()
         self.widgets.add_from_file('widgets.xml')
