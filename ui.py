@@ -65,6 +65,13 @@ class Window(Gtk.ApplicationWindow):
         self.widgets.get_object('series_entry').set_text(self.epub.series)
         self.widgets.get_object('series_spinbutton').set_value(self.epub.series_index)
 
+        if self.epub.debug_information:
+            buf = Gtk.TextBuffer()
+            buf.set_text(self.epub.debug_information)
+            self.widgets.get_object('textview1').set_buffer(buf)
+        else:
+            self.widgets.get_object('notebook').remove_page(3)
+
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
         self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
 

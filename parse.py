@@ -36,6 +36,8 @@ class EPub(object):
         self.series_index = 1
         self.description = ''
 
+        self.debug_information = ''
+
         self.extract()
         self.read_content()
 
@@ -144,22 +146,22 @@ class EPub(object):
             pass
 
     def debug(self):
-        print(self.file_path)
-
-        print('\nMetadata:')
+        data = '\nMetadata:\n\n'
 
         for i in self.fields:
-            print(i.tag, i.attrib, i.text)
+            data += '{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
 
-        print('\nManifest:')
+        data += '\n\nManifest:\n\n'
 
         for i in self.manifest:
-            print(i.tag, i.attrib, i.text)
+            data += '{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
 
-        print('\nFiles:')
+        data += '\n\nFiles:\n\n'
 
         for f in self.files:
-            print(f)
+            data += '{}\n'.format(f)
+
+        self.debug_information = data
 
     def set(self, tag, attrib=None, text=None):
         namespaced_tag = '{0}{1}'.format(DC_NAMESPACE, tag)
