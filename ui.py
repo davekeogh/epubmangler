@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gio, GdkPixbuf, GObject, GtkSource
+from gi.repository import Gtk, Gio, GdkPixbuf, GObject, GtkSource, WebKit2
 from globals import *
 
 
@@ -9,12 +9,13 @@ class Window(Gtk.ApplicationWindow):
         self.header_widgets = None
         self.menu_widgets = None
         self.menu = None
-        self.liststore = None
         self.image = None
         self.image_size = None
         self.popover = None
         self.calendar = None
+        self.web_view = None
         self.epub = epub
+        self.liststore = Gtk.ListStore(str)
 
         Gtk.ApplicationWindow.__init__(self)
 
@@ -43,6 +44,7 @@ class Window(Gtk.ApplicationWindow):
 
         self.populate_tags_list()
         self.populate_fields()
+        self.render_description_html()
         self.set_cover_image()
         self.create_calendar_popover()
         self.create_menu_popover()
@@ -66,15 +68,26 @@ class Window(Gtk.ApplicationWindow):
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
         self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
 
-        buffer = GtkSource.Buffer()
-        buffer.set_text(self.epub.description)
-        buffer.set_language(GtkSource.LanguageManager.get_default().get_language('html'))
+    def render_description_html(self):
+        self.web_view = WebKit2.WebView()
 
-        self.widgets.get_object('gtksourceview1').set_buffer(buffer)
+        overlay = self.widgets.get_object('overlay1')
+        overlay.add(self.web_view)
+
+        image = Gtk.Image.new_from_icon_name('document-properties-symbolic', Gtk.IconSize.SMALL_TOOLBAR)
+        button = Gtk.Button()
+        button.add(image)
+        button.set_valign(Gtk.Align.START)
+        button.set_halign(Gtk.Align.END)
+        button.set_margin_top(10)
+        button.set_margin_right(20)
+        button.set_opacity(0.75)
+
+        overlay.add_overlay(button)
+
+        self.web_view.load_html(HTML_TEMPLATE.format(description=self.epub.description))
 
     def populate_tags_list(self):
-        self.liststore = Gtk.ListStore(str)
-
         for item in self.epub.fields:
             if item.tag == '{}subject'.format(DC_NAMESPACE):
                 self.liststore.append([item.text])
@@ -117,10 +130,12 @@ class Window(Gtk.ApplicationWindow):
 
     def toggle_calendar(self, widget, icon, event):
         if self.popover.get_visible():
-            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, 'go-down-symbolic')
+            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,
+                                                                          'go-down-symbolic')
             self.popover.hide()
         else:
-            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, 'go-up-symbolic')
+            self.widgets.get_object('date_entry').set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,
+                                                                          'go-up-symbolic')
             self.popover.show_all()
 
     def toggle_menu(self, widget):

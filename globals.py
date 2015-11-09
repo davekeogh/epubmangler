@@ -20,3 +20,14 @@ OPF_TEMPLATE = '''<?xml version='1.0' encoding='utf-8'?>
     {guide}
   </guide>
 </package>'''
+
+HTML_TEMPLATE = '''<html>
+    <head>
+        <style>
+            p {{ font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        {description}
+    </body>
+</html>'''
