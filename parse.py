@@ -27,6 +27,7 @@ class EPub(object):
         self.root = None
         self.fields = []
         self.manifest = []
+        self.name = os.path.split(path)[1]
 
         self.title = ''
         self.author = ''

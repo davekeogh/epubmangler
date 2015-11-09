@@ -29,7 +29,7 @@ class Window(Gtk.ApplicationWindow):
         self.header_widgets.get_object('more_button').grab_focus()
 
         self.connect('delete-event', self.quit)
-        self.set_title(self.epub.file_path)
+        self.set_title(self.epub.name)
 
         self.widgets = Gtk.Builder()
         self.widgets.add_from_file('widgets.xml')
