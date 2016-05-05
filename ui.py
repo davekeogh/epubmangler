@@ -1,5 +1,8 @@
 from gi.repository import Gtk, Gio, GdkPixbuf, GObject, WebKit2
 from globals import *
+from util import *
+
+import os, os.path
 
 
 class Window(Gtk.ApplicationWindow):
@@ -42,6 +45,7 @@ class Window(Gtk.ApplicationWindow):
 
         self.populate_tags_list()
         self.populate_fields()
+        self.populate_files_tree()
         self.render_description_html()
         self.set_cover_image()
         self.create_calendar_popover()
@@ -72,6 +76,23 @@ class Window(Gtk.ApplicationWindow):
 
         self.toggle_series_index_spinbutton(self.widgets.get_object('series_entry'))
         self.toggle_tags_add_button(self.widgets.get_object('tags_entry'))
+
+    def populate_files_tree(self):
+        tree = self.widgets.get_object('treeview2')
+        model = Gtk.TreeStore(str, int)
+
+        dirwalk(model, self.epub.temp_dir)
+
+        sorted_model = Gtk.TreeModelSort(model)
+        sorted_model.set_sort_func(0, sortfunc)
+        sorted_model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
+
+        tree.set_model(sorted_model)
+
+        renderer = Gtk.CellRendererText()
+        column = Gtk.TreeViewColumn('Files', renderer, text=0)
+
+        tree.append_column(column)
 
     def render_description_html(self):
         self.web_view = WebKit2.WebView()
@@ -181,8 +202,8 @@ class Window(Gtk.ApplicationWindow):
                 if row[0] == text:
                     return
 
-            iter = self.liststore.append()
-            self.liststore.set_value(iter, 0, text)
+            tree_iter = self.liststore.append()
+            self.liststore.set_value(tree_iter, 0, text)
 
     def toggle_series_index_spinbutton(self, entry):
         if not len(entry.get_text()):
