@@ -1,0 +1,3 @@
+Advanced tab - Replace with a treeview with editable fields for all of the metadata
+ImageView - Resize asynchronously when more space is allocated
+EPub - Store the file list in a tree structure
