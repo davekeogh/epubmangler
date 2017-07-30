@@ -17,6 +17,7 @@ class BadEPubFile(Exception):
 
 class EPub(object):
     def __init__(self, path, debug=False):
+
         self.save_changes = False
         self.file_path = path
         self.temp_dir = ''
@@ -141,10 +142,42 @@ class EPub(object):
                 item.text = self.series
             elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
                 item.text = str(self.series_index)
+        
+    def serialize(self, filename):
+        manifest = self.root.findall('{}manifest'.format(OPF_NAMESPACE))
+        metadata = self.root.findall('{}metadata'.format(OPF_NAMESPACE))
 
-    def write_opf(self, filename):
-        with open(filename, 'w') as file:
-            pass
+        for item in metadata[0]:
+            if item.tag == '{}title'.format(DC_NAMESPACE):
+                item.text = self.title
+            elif item.tag == '{}creator'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}role'.format(OPF_NAMESPACE)) == 'aut':
+                item.text = self.author
+            elif item.tag == '{}publisher'.format(DC_NAMESPACE):
+                item.text = self.publisher
+            elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get(
+                    '{}event'.format(OPF_NAMESPACE)) != 'modification':
+                item.text == self.date
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series':
+                item.text = self.series
+            elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
+                item.text = str(self.series_index)
+            elif item.tag == '{}description'.format(DC_NAMESPACE):
+                item.text = self.description
+            elif item.tag == '{}subject'.format(DC_NAMESPACE):
+                metadata[0].remove(item)
+        
+        for item in self.fields:
+            if item.tag == '{}subject'.format(DC_NAMESPACE):
+                el = ETree.Element(item.tag, attrib=item.attrib, text=item.text)
+                metadata[0].append(el)
+
+        self.tree.write(tempfile.mkstemp()[1])
+
+        self.package_epub(filename)
+    
+    def package_epub(self, filename):
+        new_dir = tempfile.mkdtemp()
 
     def debug(self):
         data = '\nMetadata:\n\n'

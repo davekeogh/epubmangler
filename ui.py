@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gio, GdkPixbuf, GObject, WebKit2
+from gi.repository import Gtk, Gdk, Gio, GdkPixbuf, GObject, WebKit2
 from globals import *
 from util import *
 
@@ -29,10 +29,10 @@ class Window(Gtk.ApplicationWindow):
         self.menu_widgets = Gtk.Builder()
         self.menu_widgets.add_from_file('menu.xml')
 
-        self.header_widgets.get_object('more_button').grab_focus()
-
         self.connect('delete-event', self.quit)
+        
         self.set_title(self.epub.name)
+        self.set_icon_name(ICON_NAME)
 
         self.widgets = Gtk.Builder()
         self.widgets.add_from_file('widgets.xml')
@@ -100,19 +100,41 @@ class Window(Gtk.ApplicationWindow):
         overlay = self.widgets.get_object('overlay1')
         overlay.add(self.web_view)
 
+        box = Gtk.Box(Gtk.Orientation.HORIZONTAL)
+        box.set_spacing(0)
+        
         image = Gtk.Image.new_from_icon_name('document-properties-symbolic', Gtk.IconSize.SMALL_TOOLBAR)
+        label = Gtk.Label('')
+        box.add(image)
+        box.add(label)
+        
         button = Gtk.Button()
-        button.add(image)
+        button.add(box)
         button.set_valign(Gtk.Align.START)
         button.set_halign(Gtk.Align.END)
         button.set_margin_top(10)
         button.set_margin_right(20)
         button.set_opacity(0.75)
+        
+        button.connect('enter-notify-event', self.button_mouse_over)
+        button.connect('leave-notify-event', self.button_mouse_over)
 
         overlay.add_overlay(button)
 
         self.web_view.load_html(HTML_TEMPLATE.format(description=self.epub.description))
-
+    
+    def button_mouse_over(self, widget, event):
+        label = widget.get_children()[0].get_children()[1]
+        
+        if event.type == Gdk.EventType.ENTER_NOTIFY:
+            widget.set_opacity(1)
+            widget.get_children()[0].set_spacing(5)
+            label.set_text('Edit description')
+            
+        elif event.type == Gdk.EventType.LEAVE_NOTIFY:
+            widget.set_opacity(0.75)
+            label.set_text('')
+    
     def populate_tags_list(self):
         for item in self.epub.fields:
             if item.tag == '{}subject'.format(DC_NAMESPACE):
@@ -149,6 +171,25 @@ class Window(Gtk.ApplicationWindow):
         self.menu = self.menu_widgets.get_object('menu')
         self.menu.set_relative_to(self.header_widgets.get_object('more_button'))
         self.header_widgets.get_object('more_button').connect('pressed', self.toggle_menu)
+
+        self.menu_widgets.get_object('about_menu').connect('clicked', self.show_about_dialog)
+        self.menu_widgets.get_object('quit_menu').connect('clicked', self.quit)
+
+    def show_about_dialog(self, widget):
+        dialog = Gtk.AboutDialog()
+        dialog.set_program_name('Epub Mangler')
+        dialog.set_logo_icon_name(ICON_NAME)
+        dialog.set_version('0.10')
+        dialog.set_copyright('Copyright © 2016-2017 David Keogh')
+        dialog.set_license_type(Gtk.License.GPL_3_0)
+        dialog.set_comments('A program to modify ebook files')
+        dialog.set_website('https://github.com/davekeogh/epubmangler')
+        dialog.set_transient_for(self)
+        
+        result = dialog.run()
+
+        if result:
+            dialog.destroy()
 
     def calendar_changed(self, widget):
         date = self.calendar.get_date()
@@ -242,6 +283,6 @@ class Window(Gtk.ApplicationWindow):
         target.update_tags(tags)
         target.update_fields()
 
-    def quit(self, event, user_data):
+    def quit(self, event, user_data=None):
         del self.epub
         Gtk.main_quit()

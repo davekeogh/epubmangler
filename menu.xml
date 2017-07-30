@@ -1,24 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.20.0 -->
 <interface>
-    <object class="GtkPopoverMenu" id="menu">
+  <requires lib="gtk+" version="3.16"/>
+  <object class="GtkPopoverMenu" id="menu">
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
         <child>
-            <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="margin">10</property>
-                <property name="orientation">vertical</property>
-                <child>
-                    <object class="GtkModelButton">
-                        <property name="visible">True</property>
-                        <property name="text" translatable="yes">About</property>
-                    </object>
-                </child>
-                <child>
-                    <object class="GtkModelButton">
-                        <property name="visible">True</property>
-                        <property name="text" translatable="yes">Quit</property>
-                    </object>
-                </child>
-            </object>
+          <object class="GtkModelButton" id="about_menu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="receives_default">False</property>
+            <property name="text" translatable="yes">About</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
         </child>
-    </object>
+        <child>
+          <object class="GtkModelButton" id="quit_menu">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="receives_default">False</property>
+            <property name="text" translatable="yes">Quit</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">main</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
 </interface>

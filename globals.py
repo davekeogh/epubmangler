@@ -8,16 +8,12 @@ OPF_TEMPLATE = '''<?xml version='1.0' encoding='utf-8'?>
         xmlns:dcterms="http://purl.org/dc/terms/"
         xmlns:calibre="http://calibre.kovidgoyal.net/2009/metadata"
         xmlns:dc="http://purl.org/dc/elements/1.1/">
-        {metadata}
     </metadata>
     <manifest>
-        {manifest}
     </manifest>
     <spine toc="ncx">
-        {spine}
     </spine>
     <guide>
-        {guide}
     </guide>
 </package>'''
 
@@ -31,3 +27,6 @@ HTML_TEMPLATE = '''<html>
         {description}
     </body>
 </html>'''
+
+ICON_NAME = 'gnome-books'
+
