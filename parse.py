@@ -89,7 +89,10 @@ class EPub(object):
                 self.publisher = item.text
             elif item.tag == '{}date'.format(DC_NAMESPACE) and item.attrib.get(
                     '{}event'.format(OPF_NAMESPACE)) != 'modification':
-                self.date = time.strptime(item.text, '%Y-%m-%dT%H:%M:%S+00:00')
+                try:
+                    self.date = time.strptime(item.text, '%Y-%m-%dT%H:%M:%S+00:00')
+                except ValueError:
+                    self.date = time.strptime(item.text, '%Y-%m-%d')
             elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series':
                 self.series = item.attrib.get('content')
             elif item.tag == '{}meta'.format(OPF_NAMESPACE) and item.attrib.get('name') == 'calibre:series_index':
