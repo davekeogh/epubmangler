@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
 import zipfile
 import os
 import os.path
@@ -121,11 +124,11 @@ class EPub(object):
         new = []
 
         for item in self.fields:
-            if item.tag != '{}subject'.format(DC_NAMESPACE):
+            if item.tag != u'{}subject'.format(DC_NAMESPACE):
                 new.append(item)
 
         for tag in tags:
-            new.append(EPubMetadata(tag='{}subject'.format(DC_NAMESPACE), attrib={}, text=tag))
+            new.append(EPubMetadata(tag=u'{}subject'.format(DC_NAMESPACE), attrib={}, text=tag))
 
         self.fields = new
 
@@ -183,20 +186,21 @@ class EPub(object):
         new_dir = tempfile.mkdtemp()
 
     def debug(self):
-        data = '\nMetadata:\n\n'
+        data = u'\nMetadata:\n\n'
+
 
         for i in self.fields:
-            data += '{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
+            data += u'{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
 
-        data += '\n\nManifest:\n\n'
+        data += u'\n\nManifest:\n\n'
 
         for i in self.manifest:
-            data += '{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
+            data += u'{}, {}, {}\n\n'.format(i.tag, i.attrib, i.text)
 
-        data += '\n\nFiles:\n\n'
+        data += u'\n\nFiles:\n\n'
 
         for f in self.files:
-            data += '{}\n'.format(f)
+            data += u'{}\n'.format(f)
 
         self.debug_information = data
 

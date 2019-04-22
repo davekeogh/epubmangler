@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from gi.repository import Gtk, Gdk, Gio, GdkPixbuf, GObject, WebKit2
 from globals import *
 from util import *
@@ -180,7 +182,7 @@ class Window(Gtk.ApplicationWindow):
         dialog.set_program_name('Epub Mangler')
         dialog.set_logo_icon_name(ICON_NAME)
         dialog.set_version('0.10')
-        dialog.set_copyright('Copyright © 2016-2017 David Keogh')
+        #dialog.set_copyright('Copyright © 2016-2017 David Keogh')
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_comments('A program to modify ebook files')
         dialog.set_website('https://github.com/davekeogh/epubmangler')

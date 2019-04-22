@@ -1,8 +1,11 @@
-OPF_NAMESPACE = '{http://www.idpf.org/2007/opf}'
-DC_NAMESPACE = '{http://purl.org/dc/elements/1.1/}'
+# -*- coding: utf-8 -*-
 
-OPF_TEMPLATE = '''<?xml version='1.0' encoding='utf-8'?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="uuid_id" version="2.0">
+
+OPF_NAMESPACE = u'{http://www.idpf.org/2007/opf}'
+DC_NAMESPACE = u'{http://purl.org/dc/elements/1.1/}'
+
+OPF_TEMPLATE = u'''<?xml version='1.0' encoding='utf-8'?>
+<package xmlns=u"http://www.idpf.org/2007/opf" unique-identifier="uuid_id" version="2.0">
     <metadata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:opf="http://www.idpf.org/2007/opf"
         xmlns:dcterms="http://purl.org/dc/terms/"
@@ -17,7 +20,7 @@ OPF_TEMPLATE = '''<?xml version='1.0' encoding='utf-8'?>
     </guide>
 </package>'''
 
-HTML_TEMPLATE = '''<html>
+HTML_TEMPLATE = u'''<html>
     <head>
         <style>
             p {{ font-size: 12px; }}
