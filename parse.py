@@ -178,13 +178,29 @@ class EPub(object):
                 el = ETree.Element(item.tag, attrib=item.attrib, text=item.text)
                 metadata[0].append(el)
 
-        self.tree.write(tempfile.mkstemp()[1])
-
-        self.package_epub(filename)
-    
-    def package_epub(self, filename):
+        new_opf = tempfile.mkstemp()[1]
+        self.tree.write(new_opf)
         new_dir = tempfile.mkdtemp()
+        try:
+            shutil.copytree(self.temp_dir, new_dir)
+        except OSError:
+            pass
+        
+        if os.path.isdir(os.path.join(new_dir, 'OEBPS')):
+            shutil.copy(new_opf, os.path.join(new_dir, 'OEBPS/content.opf'))
+        else:
+            print(new_opf)
+            print(os.path.join(new_dir, 'content.opf'))
+            shutil.copy(new_opf, os.path.join(new_dir, 'content.opf'))
+            
+        # TODO: This is fucked
+        with zipfile.ZipFile(filename, 'w') as z:
+            for dirpath, dirnames, filenames in os.walk(new_dir):
+                for f in filenames:
+                    z.write(os.path.join(dirpath, f))
+                    
 
+        
     def debug(self):
         data = u'\nMetadata:\n\n'
 
