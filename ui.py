@@ -182,7 +182,7 @@ class Window(Gtk.ApplicationWindow):
         dialog.set_program_name('Epub Mangler')
         dialog.set_logo_icon_name(ICON_NAME)
         dialog.set_version('0.10')
-        #dialog.set_copyright('Copyright © 2016-2017 David Keogh')
+        dialog.set_copyright('Copyright © 2016-2017 David Keogh')
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_comments('A program to modify ebook files')
         dialog.set_website('https://github.com/davekeogh/epubmangler')
@@ -217,9 +217,10 @@ class Window(Gtk.ApplicationWindow):
         self.calendar_changed(self.calendar)
         self.toggle_calendar(self, None, None)
 
-    def set_cover_image(self, x=-1, y=500):
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, x, y, True)
-        self.image.set_from_pixbuf(pixbuf)
+    def set_cover_image(self, x=-1, y=500):    
+        if os.path.isfile(self.epub.temp_cover):
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(self.epub.temp_cover, x, y, True)
+            self.image.set_from_pixbuf(pixbuf)
 
         allocation = self.image.get_allocation()
         self.image_size = (allocation.height, allocation.width)
