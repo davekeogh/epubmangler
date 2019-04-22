@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
 
     if args.file:
-        Window(EPub(args.file, debug=True))
+        Window(EPub(args.file), debug=True)
         gi.repository.Gtk.main()
 
 if __name__ == '__main__':

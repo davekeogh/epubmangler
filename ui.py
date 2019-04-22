@@ -82,14 +82,12 @@ class Window(Gtk.ApplicationWindow):
     def populate_files_tree(self):
         tree = self.widgets.get_object('treeview2')
         model = Gtk.TreeStore(str, int)
+        model.set_sort_func(0, sortfunc)
+        model.set_sort_column_id(0, Gtk.SortType.DESCENDING)
 
         dirwalk(model, self.epub.temp_dir)
 
-        sorted_model = Gtk.TreeModelSort(model)
-        sorted_model.set_sort_func(0, sortfunc)
-        sorted_model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
-
-        tree.set_model(sorted_model)
+        tree.set_model(model)
 
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn('Files', renderer, text=0)
