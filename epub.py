@@ -385,7 +385,7 @@ class EPub:
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
 
 
-    def save(self, path: str, overwrite=False) -> None:
+    def save(self, path: str, overwrite: bool = False) -> None:
         """Saves the opened EPub with the modified metadata to the file specified in path.
         If you want to overwrite an existing file set overwrite=True."""
 
