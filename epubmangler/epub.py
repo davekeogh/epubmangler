@@ -101,7 +101,7 @@ class EPub:
 
         for meta in self.get_all(name):
             if strip_namespaces(meta.attrib) == attrib:
-                raise AttributeError(f"{os.path.basename(self.file)} already has an \
+                raise NameError(f"{os.path.basename(self.file)} already has an \
                                      identical element. It is usually incorrect to have \
                                      more than one of most elements.")
 
@@ -136,7 +136,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise AttributeError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
 
         for xpath in xpaths:
             element = self.etree.getroot().find(xpath, NAMESPACES)
@@ -144,7 +144,7 @@ class EPub:
                 break
 
         if element is None:
-            raise AttributeError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
 
         return element
 
@@ -158,7 +158,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise AttributeError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
 
         for xpath in xpaths:
             for element in self.etree.getroot().findall(xpath, NAMESPACES):
@@ -166,7 +166,7 @@ class EPub:
                     elements.append(element)
 
         if not elements:
-            raise AttributeError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
 
         return elements
 
@@ -216,7 +216,7 @@ class EPub:
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Sets the text and attribs of a element."""
 
-        # The creator tag can have a file-as attribute needs to change
+        # The creator tag can have a file-as attribute that needs to change
         if name == 'creator':
             if attrib:
                 attrib['opf:file-as'] = file_as(name)
@@ -231,7 +231,7 @@ class EPub:
             elements = self.get_all(name)
 
             if not elements:
-                raise AttributeError(f"{os.path.basename(self.file)} has no {name} element.")
+                raise NameError(f"{os.path.basename(self.file)} has no {name} element.")
 
             for element in elements:
                 if attrib == strip_namespaces(element.attrib):
