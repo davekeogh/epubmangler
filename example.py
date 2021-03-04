@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Example usage of the epub module to edit the metadata of an ebook."""
 
-from epub import EPub
+from epubmangler import EPub
 
 with EPub('data/Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
 

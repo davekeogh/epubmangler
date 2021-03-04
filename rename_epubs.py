@@ -5,7 +5,7 @@ import os
 import os.path
 import sys
 
-from epub import EPub, is_epub, ILLEGAL_CHARS
+from epubmangler import EPub, is_epub, ILLEGAL_CHARS
 
 if __name__ == '__main__':
 

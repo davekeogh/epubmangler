@@ -1,11 +1,14 @@
 __pycache__/
 *.py[cod]
 *.egg-info
+*.whl
+*.tar.gz
 
 .vscode
 
 test/
-venv
+venv/
+build/
 
 data/gutenberg/
 data/orig/
