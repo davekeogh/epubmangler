@@ -310,8 +310,6 @@ class EPub:
         with open(name, 'w') as opf:
             opf.write(text)
 
-        shutil.copy(name, 'data/content.opf') # TODO: Delete
-
         # TODO: Tidy XML before zip?
         # ElementTree has an indent function in Python 3.9, use that?
 

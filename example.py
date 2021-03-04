@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Example usage of the epub module to edit the metadata of an ebook."""
+"""Example usage of epubmangler to edit the metadata of an ebook."""
 
 from epubmangler import EPub
 
-with EPub('data/Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
+with EPub('Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
 
     # Get information about a book
     language = book.get('language')
@@ -17,7 +17,7 @@ with EPub('data/Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
     book.remove('date', {'opf:event' : 'conversion'})
 
     # Convenience functions
-    book.set_cover('data/cat picture.jpg')
+    book.set_cover('cat_picture.jpg')
     book.set_identifier('http://github.com/davekeogh/epubmangler', 'URI')
 
     # Add and remove subjects
@@ -25,4 +25,4 @@ with EPub('data/Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
     book.add_subject('Comedy')
     book.remove_subject('Horror tales')
 
-    book.save('data/Frankenstein 2.epub', overwrite=True)
+    book.save('Frankenstein 2.epub', overwrite=True)

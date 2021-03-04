@@ -12,7 +12,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
         DIR = sys.argv[1]
     else:
-        DIR = 'data/gutenberg'
+        DIR = os.getcwd()
 
     for file in os.listdir(DIR):
         full_path = os.path.join(DIR, file)
