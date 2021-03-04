@@ -28,7 +28,7 @@ from typing import Dict, List, Optional, Type
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .globals import XPATHS, ILLEGAL_CHARS, NAMESPACES, IMAGE_TYPES
-from .functions import find_opf_files, is_epub, strip_namespaces
+from .functions import file_as, find_opf_files, is_epub, strip_namespaces
 
 
 class EPub:
@@ -215,6 +215,13 @@ class EPub:
 
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Sets the text and attribs of a element."""
+
+        # The creator tag can have a file-as attribute needs to change
+        if name == 'creator':
+            if attrib:
+                attrib['opf:file-as'] = file_as(name)
+            else:
+                attrib = {'opf:file-as' : file_as(name)}
 
         if not attrib:
             element = self.get(name)

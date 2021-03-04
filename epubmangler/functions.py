@@ -11,6 +11,24 @@ from typing import Dict, List
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
 
+def file_as(name: str) -> str:
+    """Returns a human's name with the surname first, or tries to at least.
+    This may perform poorly with some names.
+    
+    `file_as('Mary Wollstonecraft Shelley')` returns `'Shelley, Mary Wollstonecraft'`"""
+    
+    parts = name.split()
+    name = parts[0]
+    
+    if len(parts) == 1:
+        return parts[0]   
+
+    for part in range(1, len(parts) - 1):
+        name = f'{name} {parts[part]}'
+
+    return f'{parts[len(parts) - 1]}, {name}'
+
+
 def find_opf_files(path: str) -> List[str]:
     """Returns a list of all the OPF files as defined in: `META-INF/container.xml`
 
@@ -57,10 +75,10 @@ def strip_namespace(text: str) -> str:
     """Strips the XML namespace from some text (either a tag or attribute name).
     This just returns the third element of `text.rpartition('}')`
 
-    `text = "{http://purl.org/dc/elements/1.1/}creator"`
-    `text.rpartition('}') = ("{http://purl.org/dc/elements/1.1/", "}", "creator")`
+    `'{http://purl.org/dc/elements/1.1/}creator'.rpartition('}')`
+    returns `('{http://purl.org/dc/elements/1.1/', '}', 'creator')`
 
-    Therefore, `text.rpartition('}')[2]`, will always be the text without the namespace."""
+    Therefore, `text.rpartition('}')[2]`, will usually be the text without the namespace."""
 
     return text.rpartition('}')[2]
 
