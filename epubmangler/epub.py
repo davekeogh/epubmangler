@@ -36,6 +36,7 @@ class EPub:
 
     etree: ET.ElementTree
     file: str
+    metadata: List[ET.Element]
     tempdir: TempDir
     version: str
 
@@ -56,6 +57,7 @@ class EPub:
 
         try:
             self.etree = ET.parse(find_opf_files(self.tempdir.name)[0])
+            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
             self.version = self.etree.getroot().attrib['version']
         except IndexError:
             raise ValueError(f"{path} does not appear to be a valid .epub file.")
@@ -309,7 +311,9 @@ class EPub:
         # https://bugs.python.org/issue17088
         # https://github.com/python/cpython/pull/11050
 
-        text = open(name, 'r').read()
+        with open(name, 'r') as f:
+            text = f.read()
+        
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
         text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
