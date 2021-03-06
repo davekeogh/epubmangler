@@ -201,10 +201,10 @@ class EPub:
         if attrib:
             for element in elements:
                 if attrib == strip_namespaces(element.attrib):
-                    self.etree.find('./opf:metadata', NAMESPACES).remove(element)
+                    self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(element)
 
         else:
-            self.etree.find('./opf:metadata', NAMESPACES).remove(elements[0])
+            self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
 
 
     def remove_subject(self, name: str) -> None:
@@ -212,7 +212,7 @@ class EPub:
 
         for subject in self.get_all('subject'):
             if subject.text == name:
-                self.etree.find('./opf:metadata', NAMESPACES).remove(subject)
+                self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(subject)
 
 
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
@@ -234,11 +234,19 @@ class EPub:
 
             if not elements:
                 raise NameError(f"{os.path.basename(self.file)} has no {name} element.")
-
+            
+            found = False
+            
             for element in elements:
                 if attrib == strip_namespaces(element.attrib):
                     element.text = text
+                    found = True
                     break
+            
+            if not found:
+                element = elements[0]
+                element.text = text
+                element.attrib = attrib
 
 
     def set_cover(self, path: str) -> None:
