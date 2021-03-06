@@ -94,21 +94,26 @@ class EPub:
 
         try:
             self.get(name).text = text
-        except AttributeError:
+        except NameError:
             self.add(name, text)
 
 
     def add(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Adds a new element to the metadata section of the tree."""
 
-        for meta in self.get_all(name):
-            if strip_namespaces(meta.attrib) == attrib:
-                raise NameError(f"{os.path.basename(self.file)} already has an \
-                                     identical element. It is usually incorrect to have \
-                                     more than one of most elements.")
+        try:
+            for meta in self.get_all(name):
+                if strip_namespaces(meta.attrib) == attrib:
+                    raise NameError(f"{os.path.basename(self.file)} already has an \
+                                        identical element. It is usually incorrect to have \
+                                        more than one of most elements.")
+        except NameError:
+            pass
 
-        element = ET.Element(f"dc:{name}", attrib) # Add the dc: namespace to everything?
+        element = ET.Element(f"dc:{name}") # Add the dc: namespace to everything?
         element.text = text
+        if attrib:
+            element.attrib = attrib
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
 

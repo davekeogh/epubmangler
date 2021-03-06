@@ -72,7 +72,21 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         subject = self.book.get_all('subject')[0]
         self.book.remove_subject(subject.text)
         self.assertNotEqual(subject.text, self.book.get_all('subject')[0])
+    
+    def test_add_subject(self):
+        subject = self.book.get_all('subject')[0]
+        self.book.add_subject('zzz')
+        self.assertNotEqual(subject.text, self.book.get_all('subject')[0])
+    
+    def test_setitem(self):
+        self.book['title'] = 'zzzz'
+        self.assertEqual(self.book.get('title').text, 'zzzz')
 
+        self.book['description'] = 'zzzz'
+        self.book.save('test.epub')
+
+        # TODO: get fails here, it is in the opf though
+        self.assertEqual(self.book.get('description').text, 'zzzz')
 
 if __name__ == '__main__':
     unittest.main()
