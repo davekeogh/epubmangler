@@ -71,6 +71,12 @@ def is_epub(path: str) -> bool:
             return False
 
 
+def namespaced_text(namespace:str, text:str) -> str:
+    """Returns the name and namespace formated for elementtree."""
+
+    return f"{{{namespace}}}{text}"
+
+
 def strip_namespace(text: str) -> str:
     """Strips the XML namespace from some text (either a tag or attribute name).
     This just returns the third element of `text.rpartition('}')`

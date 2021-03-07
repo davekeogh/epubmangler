@@ -1,5 +1,6 @@
 """Unit tests for epubmangler"""
 
+from epubmangler.epub import EPub
 import os
 import os.path
 import unittest
@@ -34,6 +35,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         name = 'testtesttest.epub'
         self.book.save(name)
         self.assertTrue(os.path.exists(name))
+        self.assertRaises(FileExistsError, self.book.save, name)
         os.remove(name)
     
     def test_set(self):
@@ -44,7 +46,12 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.assertEqual('someone', self.book.get('creator').text)
         self.assertEqual('zzz', self.book.get('creator').attrib['ddd'])
 
+        self.book.set('creator', 'a long name with many parts', {'opf:file-as' : 'zzz'})
+        self.assertEqual('zzz', self.book.get('creator').attrib['opf:file-as'])
+
         self.assertRaises(NameError, self.book.set, 'nope', 'nope')
+
+        self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
 
     def test_set_cover(self):
         self.book.set_cover('cat_picture.jpg')
@@ -81,12 +88,23 @@ class EPub2GutenbergTestCase(unittest.TestCase):
     def test_setitem(self):
         self.book['title'] = 'zzzz'
         self.assertEqual(self.book.get('title').text, 'zzzz')
-
         self.book['description'] = 'zzzz'
-        self.book.save('test.epub')
-
-        # TODO: get fails here, it is in the opf though
         self.assertEqual(self.book.get('description').text, 'zzzz')
+    
+    def test_getitem(self):
+        self.assertIsInstance(self.book['title'], ET.Element)
+        try:
+            self.book['nothing']
+        except NameError:
+            pass
+
+    def test_context_handler(self):
+        with EPub('Frankenstein.epub') as _e:
+            pass
+    
+    def test_init(self):
+        self.assertRaises(ValueError, EPub, 'notafile')
+        # TODO: Need some bad epub files to test here
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,7 +28,7 @@ from typing import Dict, List, Optional, Type
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .globals import XPATHS, ILLEGAL_CHARS, NAMESPACES, IMAGE_TYPES
-from .functions import file_as, find_opf_files, is_epub, strip_namespaces
+from .functions import file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces
 
 
 class EPub:
@@ -36,7 +36,6 @@ class EPub:
 
     etree: ET.ElementTree
     file: str
-    metadata: List[ET.Element]
     tempdir: TempDir
     version: str
 
@@ -57,7 +56,6 @@ class EPub:
 
         try:
             self.etree = ET.parse(find_opf_files(self.tempdir.name)[0])
-            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
             self.version = self.etree.getroot().attrib['version']
         except IndexError:
             raise ValueError(f"{path} does not appear to be a valid .epub file.")
@@ -110,7 +108,7 @@ class EPub:
         except NameError:
             pass
 
-        element = ET.Element(f"dc:{name}") # Add the dc: namespace to everything?
+        element = ET.Element(namespaced_text(NAMESPACES['dc'], name)) # Add the dc: namespace to everything?
         element.text = text
         if attrib:
             element.attrib = attrib
@@ -126,7 +124,7 @@ class EPub:
                 return False
 
 
-        element = ET.Element('dc:subject')
+        element = ET.Element(namespaced_text(NAMESPACES['dc'], 'subject'))
         element.text = name
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
@@ -195,6 +193,12 @@ class EPub:
         based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
 
         return os.path.join(based, name)
+    
+
+    def metadata(self) -> List[ET.Element]:
+        """Returns a list of every element found in the metadata section."""
+
+        return self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
 
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
@@ -223,27 +227,17 @@ class EPub:
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Sets the text and attribs of a element."""
 
-        # The creator tag can have a file-as attribute that needs to change
-        if name == 'creator':
-            if attrib:
-                attrib['opf:file-as'] = file_as(name)
-            else:
-                attrib = {'opf:file-as' : file_as(name)}
-
         if not attrib:
             element = self.get(name)
             element.text = text
 
         else:
             elements = self.get_all(name)
-
-            if not elements:
-                raise NameError(f"{os.path.basename(self.file)} has no {name} element.")
             
             found = False
             
             for element in elements:
-                if attrib == strip_namespaces(element.attrib):
+                if strip_namespaces(attrib) == strip_namespaces(element.attrib):
                     element.text = text
                     found = True
                     break
