@@ -11,7 +11,7 @@ import epubmangler
 
 
 BOOK = 'Frankenstein.epub'
-
+BOOK = 'gutenberg/Ray Bradbury - Pillar of Fire.epub'
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
@@ -75,15 +75,15 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         except NameError:
             pass
     
-    def test_remove_subject(self):
-        subject = self.book.get_all('subject')[0]
-        self.book.remove_subject(subject.text)
-        self.assertNotEqual(subject.text, self.book.get_all('subject')[0])
-    
-    def test_add_subject(self):
-        subject = self.book.get_all('subject')[0]
+    def test_add_remove_subject(self):
+        len1 = len(self.book.get_all('subject'))
         self.book.add_subject('zzz')
-        self.assertNotEqual(subject.text, self.book.get_all('subject')[0])
+        len2 = len(self.book.get_all('subject'))
+        self.assertGreater(len2, len1)
+        self.book.remove_subject('zzz')
+        len3 = len(self.book.get_all('subject'))
+        self.assertLess(len3, len2)
+                
     
     def test_setitem(self):
         self.book['title'] = 'zzzz'
@@ -99,7 +99,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             pass
 
     def test_context_handler(self):
-        with EPub('Frankenstein.epub') as _e:
+        with EPub(BOOK) as _e:
             pass
     
     def test_init(self):

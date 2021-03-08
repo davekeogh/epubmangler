@@ -119,8 +119,8 @@ class EPub:
     def add_subject(self, name: str) -> bool:
         """Adds a subject to the tree. This will return False if the subject already exists."""
 
-        for meta in self.get_all('subject'):
-            if meta.text == name:
+        for subject in self.get_all('subject'):
+            if subject.text == name:
                 return False
 
 
@@ -169,9 +169,6 @@ class EPub:
             for element in self.etree.getroot().findall(xpath, NAMESPACES):
                 if element is not None:
                     elements.append(element)
-
-        if not elements:
-            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
 
         return elements
 
@@ -285,10 +282,9 @@ class EPub:
             else:
                 scheme = 'ISBN'
 
-        element.attrib['opf:scheme'] = scheme
-
         # Work around ElementTree issue: https://bugs.python.org/issue17088 (See comment in save)
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
+        element.attrib['opf:scheme'] = scheme
 
 
     def save(self, path: str, overwrite: bool = False) -> None:
