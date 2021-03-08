@@ -10,6 +10,8 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
+from .globals import NAMESPACES
+
 
 def file_as(name: str) -> str:
     """Returns a human's name with the surname first, or tries to at least.
@@ -71,7 +73,7 @@ def is_epub(path: str) -> bool:
             return False
 
 
-def namespaced_text(text:str, namespaces:Dict[str]) -> str:
+def namespaced_text(text:str, namespaces:Dict[str] = NAMESPACES) -> str:
     """Returns the name and namespace formated for elementtree."""
 
     try:

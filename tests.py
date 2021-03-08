@@ -11,7 +11,7 @@ import epubmangler
 
 
 BOOK = 'Frankenstein.epub'
-#BOOK = 'gutenberg/Ray Bradbury - Pillar of Fire.epub'
+BOOKS = os.listdir('gutenberg')
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
@@ -106,4 +106,8 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         # TODO: Need some bad epub files to test here
 
 if __name__ == '__main__':
+    for book in BOOKS:
+        BOOK = os.path.join('gutenberg', book)
+        # TODO: TestSuite?
+    
     unittest.main()

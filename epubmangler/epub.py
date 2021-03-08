@@ -108,7 +108,7 @@ class EPub:
         except NameError:
             pass
 
-        element = ET.Element(namespaced_text(f'dc:{name}', NAMESPACES)) # Add the dc: namespace to everything?
+        element = ET.Element(namespaced_text(f'dc:{name}')) # Add the dc: namespace to everything?
         element.text = text
         if attrib:
             element.attrib = attrib
@@ -123,7 +123,7 @@ class EPub:
             if subject.text == name:
                 return False
 
-        element = ET.Element(namespaced_text('dc:subject', NAMESPACES))
+        element = ET.Element(namespaced_text('dc:subject'))
         element.text = name
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
