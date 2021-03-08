@@ -11,7 +11,7 @@ import epubmangler
 
 
 BOOK = 'Frankenstein.epub'
-BOOK = 'gutenberg/Ray Bradbury - Pillar of Fire.epub'
+#BOOK = 'gutenberg/Ray Bradbury - Pillar of Fire.epub'
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
@@ -83,13 +83,12 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.book.remove_subject('zzz')
         len3 = len(self.book.get_all('subject'))
         self.assertLess(len3, len2)
-                
-    
+
     def test_setitem(self):
         self.book['title'] = 'zzzz'
         self.assertEqual(self.book.get('title').text, 'zzzz')
         self.book['description'] = 'zzzz'
-        self.assertEqual(self.book.get('description').text, 'zzzz')
+        self.assertEqual(self.book['description'].text, 'zzzz')
     
     def test_getitem(self):
         self.assertIsInstance(self.book['title'], ET.Element)

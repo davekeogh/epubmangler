@@ -71,10 +71,15 @@ def is_epub(path: str) -> bool:
             return False
 
 
-def namespaced_text(namespace:str, text:str) -> str:
+def namespaced_text(text:str, namespaces:Dict[str]) -> str:
     """Returns the name and namespace formated for elementtree."""
 
-    return f"{{{namespace}}}{text}"
+    try:
+       ns, text = re.split(':', text)
+    except ValueError:
+        return text
+
+    return f"{{{namespaces[ns]}}}{text}"
 
 
 def strip_namespace(text: str) -> str:
