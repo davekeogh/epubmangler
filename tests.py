@@ -1,17 +1,19 @@
-"""Unit tests for epubmangler"""
+"""Test all EPub methods against a random book from Project Gutenberg."""
 
 from epubmangler.epub import EPub
 import os
 import os.path
 import unittest
+import random
 
 import xml.etree.ElementTree as ET
 
 import epubmangler
 
-
-BOOK = 'Frankenstein.epub'
+# Select a book from local Project Gutenberg library
 BOOKS = os.listdir('gutenberg')
+BOOK = os.path.join('gutenberg', random.choice(BOOKS))
+
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
@@ -106,8 +108,5 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         # TODO: Need some bad epub files to test here
 
 if __name__ == '__main__':
-    for book in BOOKS:
-        BOOK = os.path.join('gutenberg', book)
-        # TODO: TestSuite?
-    
-    unittest.main()
+    print(os.path.basename(BOOK))
+    unittest.main(verbosity=2)
