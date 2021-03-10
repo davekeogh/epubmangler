@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Test all EPub methods against a random book from Project Gutenberg."""
 
 from epubmangler.epub import EPub
@@ -10,9 +11,11 @@ import xml.etree.ElementTree as ET
 
 import epubmangler
 
-# Select a book from local Project Gutenberg library
-BOOKS = os.listdir('gutenberg')
-BOOK = os.path.join('gutenberg', random.choice(BOOKS))
+# Select a book from local selection of epubs
+# DIR = 'gutenberg'
+DIR = 'calibre'
+BOOKS = os.listdir(DIR)
+BOOK = os.path.join(DIR, random.choice(BOOKS))
 
 
 class EPub2GutenbergTestCase(unittest.TestCase):

@@ -1,14 +1,19 @@
 __pycache__/
-*.py[cod]
-*.egg-info
-.coverage
-htmlcov/
-.vscode
 venv/
 build/
 dist/
+htmlcov/
+*.py[cod]
+*.egg-info
+.coverage
+.vscode
+
+# Epub files for tests:
 gutenberg/
 bad/
+calibre/
+
+# Test artifacts:
 content.opf
 Frankenstein 2.epub
 test.epub
