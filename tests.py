@@ -62,7 +62,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
 
         self.assertRaises(NameError, self.book.set, 'nope', 'nope')
 
-        #self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
+        self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
 
     def test_set_cover(self):
         self.book.set_cover('cat_picture.jpg')
