@@ -12,8 +12,8 @@ import xml.etree.ElementTree as ET
 import epubmangler
 
 # Select a book from local selection of epubs
-# DIR = 'gutenberg'
-DIR = 'calibre'
+DIR = 'gutenberg'
+# DIR = 'calibre'
 BOOKS = os.listdir(DIR)
 BOOK = os.path.join(DIR, random.choice(BOOKS))
 
@@ -43,6 +43,11 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.assertRaises(FileExistsError, self.book.save, name)
         os.remove(name)
     
+    def test_add(self):
+        els = self.book.get_all('date')
+        for el in els:
+            self.book.add(el.tag, 'ddd', el.attrib)
+    
     def test_set(self):
         self.book.set('title', 'something')
         self.assertEqual('something', self.book.get('title').text)
@@ -50,13 +55,14 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.book.set('creator', 'someone', {'ddd' : 'zzz'})
         self.assertEqual('someone', self.book.get('creator').text)
         self.assertEqual('zzz', self.book.get('creator').attrib['ddd'])
+        self.book.set('creator', 'aaa', {'ddd' : 'zzz'})
 
         self.book.set('creator', 'a long name with many parts', {'opf:file-as' : 'zzz'})
         self.assertEqual('zzz', self.book.get('creator').attrib['opf:file-as'])
 
         self.assertRaises(NameError, self.book.set, 'nope', 'nope')
 
-        self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
+        #self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
 
     def test_set_cover(self):
         self.book.set_cover('cat_picture.jpg')
@@ -89,6 +95,9 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         len3 = len(self.book.get_all('subject'))
         self.assertLess(len3, len2)
 
+        sub1 = self.book.get_all('subject')[0]
+        self.assertFalse(self.book.add_subject(sub1.text))
+
     def test_setitem(self):
         self.book['title'] = 'zzzz'
         self.assertEqual(self.book.get('title').text, 'zzzz')
@@ -109,6 +118,10 @@ class EPub2GutenbergTestCase(unittest.TestCase):
     def test_init(self):
         self.assertRaises(ValueError, EPub, 'notafile')
         # TODO: Need some bad epub files to test here
+    
+    def test_metadata(self):
+        for meta in self.book.metadata():
+            self.assertIsInstance(meta, ET.Element)
 
 if __name__ == '__main__':
     print(os.path.basename(BOOK))

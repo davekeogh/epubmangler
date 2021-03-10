@@ -101,7 +101,7 @@ class EPub:
 
         try:
             for meta in self.get_all(name):
-                if strip_namespaces(meta.attrib) == attrib:
+                if strip_namespaces(meta.attrib) == strip_namespaces(attrib):
                     raise NameError(f"{os.path.basename(self.file)} already has an \
                                         identical element. It is usually incorrect to have \
                                         more than one of most elements.")
