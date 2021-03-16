@@ -19,10 +19,15 @@ if __name__ == '__main__':
 
         if is_epub(full_path):
             book = EPub(full_path)
-            title = book.get('title').text
-            author = book.get('creator').text
+            
+            try:
+                title = book.get('title').text
+                author = book.get('creator').text
+            except NameError:
+                print(f'No title or author metadata: {file}')
+                continue
 
-            file_name = f"{author} - {title}.epub"
+            file_name = f'{author} - {title}.epub'
 
             # Some characters are not allowed in filenames especially on Windows
             for char in ILLEGAL_CHARS:
