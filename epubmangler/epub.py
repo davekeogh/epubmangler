@@ -320,11 +320,10 @@ class EPub:
         text = text.replace(':ns0', ':opf')
         text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
 
+        # TODO: Tidy XML before saving?
+        # ElementTree has an indent function in Python 3.9, use that?
         with open(name, 'w') as opf:
             opf.write(text)
-
-        # TODO: Tidy XML before zip?
-        # ElementTree has an indent function in Python 3.9, use that?
 
         with ZipFile(path, 'w', ZIP_DEFLATED) as zip_file:
             for root, _dirs, files in os.walk(self.tempdir.name):
