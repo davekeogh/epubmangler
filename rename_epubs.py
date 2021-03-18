@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 """Rename epub files in a directory to `author - title.epub`."""
 
-import os
-import os.path
-import sys
-import timeit
-
+import os, os.path, sys, timeit
 from epubmangler import EPub, is_epub, ILLEGAL_CHARS
-
 
 def rename_file(path: str) -> None:
     book = EPub(full_path)
@@ -48,4 +43,4 @@ if __name__ == '__main__':
             FILES += 1
             TIME += timeit.timeit(stmt='rename_file(full_path)', setup='from __main__ import rename_file, full_path', number=1)
 
-    print(f'Read {FILES} files in {TIME} seconds')
+    print(f'Read {FILES} files in {round(TIME, 3)}s')

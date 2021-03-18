@@ -112,6 +112,12 @@ class EPub:
         element.text = text
         if attrib:
             element.attrib = attrib
+        
+        if name == 'creator':
+            if attrib:
+                element.attrib['opf:file-as'] = file_as(text)
+            else:
+                element.attrib = {'opf:file-as' : file_as(text)}
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
 
@@ -221,7 +227,12 @@ class EPub:
 
 
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
-        """Sets the text and attribs of a element."""
+        """Sets the text and attribs of an element."""
+
+        if name == 'creator':
+            if not attrib:
+                attrib = {}
+            attrib['opf:file-as'] = file_as(text)
 
         if not attrib:
             element = self.get(name)
@@ -229,7 +240,6 @@ class EPub:
 
         else:
             elements = self.get_all(name)
-            
             found = False
             
             for element in elements:
@@ -265,7 +275,7 @@ class EPub:
 
 
     def set_identifier(self, name: str, scheme: str = None) -> None:
-        """Sets the epub's ID metadata. This is generally the book's ISBN or a URI."""
+        """Sets the epub's identifier. This is generally the book's ISBN or a URI."""
 
         id_num = self.etree.getroot().attrib['unique-identifier']
         element = self.etree.getroot().find(f"./opf:metadata/dc:identifier/[@id=\"{id_num}\"]",
@@ -287,8 +297,8 @@ class EPub:
 
 
     def save(self, path: str, overwrite: bool = False) -> None:
-        """Saves the opened EPub with the modified metadata to the file specified in path.
-        If you want to overwrite an existing file set overwrite=True."""
+        """Saves the opened EPub with the modified metadata to the file specified in `path`.
+        If you want to overwrite an existing file set `overwrite=True`."""
 
         # Remove some characters that could cause file system errors
         # This is mostly useful if you rename a file to the book title etc.
@@ -302,7 +312,7 @@ class EPub:
         if os.path.exists(path) and not overwrite:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
-        self.add('date', time.strftime('%Y-%m-%d'), {'event' : 'modified'})
+        self.add('date', time.strftime('%F'), {'event' : 'modified'})
 
         name = os.path.join(self.tempdir.name, find_opf_files(self.tempdir.name)[0])
         self.etree.write(name, xml_declaration=True, encoding='utf-8', method='xml')

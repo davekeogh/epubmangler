@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 """Test all EPub methods against a random book from Project Gutenberg."""
 
-from epubmangler.epub import EPub
-import os
-import os.path
-import unittest
-import random
+import os, os.path, unittest, random
 
 import xml.etree.ElementTree as ET
 
@@ -57,8 +53,8 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.assertEqual('zzz', self.book.get('creator').attrib['ddd'])
         self.book.set('creator', 'aaa', {'ddd' : 'zzz'})
 
-        self.book.set('creator', 'a long name with many parts', {'opf:file-as' : 'zzz'})
-        self.assertEqual('zzz', self.book.get('creator').attrib['opf:file-as'])
+        self.book.set('creator', 'a long name with many parts')
+        self.assertEqual('parts, a long name with many', self.book.get('creator').attrib['opf:file-as'])
 
         self.assertRaises(NameError, self.book.set, 'nope', 'nope')
 
@@ -95,8 +91,11 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         len3 = len(self.book.get_all('subject'))
         self.assertLess(len3, len2)
 
-        sub1 = self.book.get_all('subject')[0]
-        self.assertFalse(self.book.add_subject(sub1.text))
+        try:
+            sub1 = self.book.get_all('subject')[0]
+            self.assertFalse(self.book.add_subject(sub1.text))
+        except KeyError:
+            pass
 
     def test_setitem(self):
         self.book['title'] = 'zzzz'
@@ -112,11 +111,11 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             pass
 
     def test_context_handler(self):
-        with EPub(BOOK) as _e:
+        with epubmangler.EPub(BOOK) as _e:
             pass
     
     def test_init(self):
-        self.assertRaises(ValueError, EPub, 'notafile')
+        self.assertRaises(ValueError, epubmangler.EPub, 'notafile')
         # TODO: Need some bad epub files to test here
     
     def test_metadata(self):
