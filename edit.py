@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
-import os, os.path, sys
+import os, os.path, random, sys
 
 from epubmangler import EPub, is_epub
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import GLib, Gio, Gtk, GdkPixbuf
+gi.require_version('WebKit2', '4.0')
+from gi.repository import Gtk, GdkPixbuf, WebKit2
 
 
 def scale_cover(file, allocation):
@@ -25,8 +26,15 @@ def add_subject(entry, list_model, popover):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and is_epub(sys.argv[1]):
-        book = EPub(sys.argv[1])
+    if len(sys.argv) > 1:
+        if is_epub(sys.argv[1]):
+            book = EPub(sys.argv[1])
+        elif sys.argv[1] == 'test':
+            # Select a book from local selection of epubs
+            # folder = 'gutenberg'
+            folder = 'calibre'
+            books = os.listdir(folder)
+            book = EPub(os.path.join(folder, random.choice(books)))
     else:
         book = None
     
