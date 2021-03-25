@@ -188,8 +188,13 @@ class EPub:
         `./opf:manifest/opf:item/[@id=id]` gives us an element with a `href` element that points to
         the cover file, the `media-type` attrib also needs to be set if the file type changed."""
 
-        id_num = self.get_all('cover')[0].attrib['content']
-        name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_num}\"]",
+        # TODO: Some epubs don't have a meta element pointing to the cover image in the manifest.
+        # In these cases we should look for an image with a name or id: 'cover', 'cover.jpg', etc.
+        # If there's only one image, then return that. If there are several then guess?
+        # Finally: return None
+
+        id_tag = self.get_all('cover')[0].attrib['content']
+        name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_tag}\"]",
                                          NAMESPACES).attrib['href']
 
         based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
