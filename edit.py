@@ -24,6 +24,14 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
+def open_file(button: Gtk.Button) -> None:
+    pass
+
+
+def save_file(button: Gtk.Button) -> None:
+    pass
+
+
 def set_cover(button: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
@@ -46,8 +54,6 @@ def set_cover(button: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> No
 
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
             image.set_from_pixbuf(scale_cover(filename, content_area.get_allocation()))
-    else:
-        filename = None
     
     dialog.destroy()
 
@@ -61,6 +67,10 @@ def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, popover: Gtk.Popover) ->
     model.append([entry.get_text()])
     entry.set_text('')
     popover.popdown()
+
+
+def remove_subject(entry: Gtk.Entry, model: Gtk.ListStore, view: Gtk.TreeView) -> None:
+    pass
 
 
 if __name__ == '__main__':
@@ -87,6 +97,8 @@ if __name__ == '__main__':
     # Widgets
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
+    open_button = builder.get_object('open_button')
+    save_button = builder.get_object('save_button')
     content_area = builder.get_object('box')
     cover = builder.get_object('cover')
     cover_button = builder.get_object('cover_button')
@@ -94,6 +106,7 @@ if __name__ == '__main__':
     date_entry = builder.get_object('date')
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
+    remove_button = builder.get_object('remove_button')
     description = builder.get_object('description') # Replaced by WebKit2.WebView
 
     popover_cal = builder.get_object('popovercalendar')
@@ -103,9 +116,12 @@ if __name__ == '__main__':
 
     # Signals 
     window.connect('destroy', Gtk.main_quit)
+    open_button.connect('clicked', open_file)
+    save_button.connect('clicked', save_file)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry)
+    remove_button.connect('clicked', remove_subject, list_model, subject_view)
     cover_button.connect('clicked', set_cover, cover, content_area)
 
     if book:
@@ -150,7 +166,11 @@ if __name__ == '__main__':
 
         window.show()
         # The window needs to be shown before the cover so that it can be scaled to fit
-        cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
+        try:
+            # TODO: Remove try, except when EPub.get_cover issue is resolved.
+            cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
+        except IndexError:
+            pass
     
     else:
         content_area.hide()
