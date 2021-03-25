@@ -166,11 +166,7 @@ if __name__ == '__main__':
 
         window.show()
         # The window needs to be shown before the cover so that it can be scaled to fit
-        try:
-            # TODO: Remove try, except when EPub.get_cover issue is resolved.
-            cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
-        except IndexError:
-            pass
+        cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
     
     else:
         content_area.hide()

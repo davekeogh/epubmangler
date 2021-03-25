@@ -180,27 +180,48 @@ class EPub:
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
-        The cover is slightly more involved to edit than other items. We need to look at the
-        attribs of two different tags to get the file name.
+        
+        `./opf:manifest/opf:item/[@properties=\"cover-image\"]` contains the local path to the
+        image in EPub version 3 files.
 
-        `./opf:metadata/opf:meta/[@name="cover"]` gives us an element with an `id` attrib
+        We need to look at the attribs of two different tags to get the file name for EPub 2 files:
 
-        `./opf:manifest/opf:item/[@id=id]` gives us an element with a `href` element that points to
+        `./opf:metadata/opf:meta/[@name="cover"]` gives us an element with an `content` attrib
+
+        `./opf:manifest/opf:item/[@id=content]` gives us an element with a `href` element that points to
         the cover file, the `media-type` attrib also needs to be set if the file type changed."""
 
-        # TODO: Some epubs don't have a meta element pointing to the cover image in the manifest.
-        # In these cases we should look for an image with a name or id: 'cover', 'cover.jpg', etc.
-        # If there's only one image, then return that. If there are several then guess?
-        # Finally: return None
+        # EPub 3
+        try:
+            name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@properties=\"cover-image\"]",
+                                             NAMESPACES).attrib['href']
+            based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+            
+            return os.path.join(based, name)
 
-        id_tag = self.get_all('cover')[0].attrib['content']
-        name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_tag}\"]",
-                                         NAMESPACES).attrib['href']
+        except AttributeError:
+            pass
 
-        based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+        # EPub 2
+        # Some epubs found in the wild, that have been edited(?), have an extra <meta name="cover">
+        # element leftover. We look at all of them until we find a matching item in the manifest.
+        for item in self.get_all('cover'):
+            id_tag = item.attrib['content']
 
-        return os.path.join(based, name)
-    
+            if id_tag is not None:
+                try:
+                    name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_tag}\"]",
+                                                    NAMESPACES).attrib['href']
+
+                    based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+
+                    return os.path.join(based, name)
+                except AttributeError:
+                    pass
+        
+        # No cover image 
+        return None
+
 
     def metadata(self) -> List[ET.Element]:
         """Returns a list of every element found in the metadata section."""
