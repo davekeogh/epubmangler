@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
-import os, os.path, random, sys
+import mimetypes, os, os.path, random, sys
 
-from epubmangler import EPub, is_epub
+from epubmangler import EPub, IMAGE_TYPES, is_epub
 
 import gi
 gi.require_version('Gdk', '3.0')
@@ -23,11 +23,39 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     width = allocation.width / 3
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
-def set_cover(button: Gtk.Button) -> None:
-    pass
 
-def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry):
-    pass
+def set_cover(button: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
+    dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
+                                   action=Gtk.FileChooserAction.OPEN)
+    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                       Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+
+    img_filter = Gtk.FileFilter()
+    img_filter.add_mime_type('image/*')
+    img_filter.set_name('Image files')
+
+    all_filter= Gtk.FileFilter()
+    all_filter.add_pattern('*')
+    all_filter.set_name('All files')
+    
+    dialog.add_filter(img_filter)
+    dialog.add_filter(all_filter)
+
+    if dialog.run() == Gtk.ResponseType.OK:
+        filename = dialog.get_filename()
+
+        if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
+            image.set_from_pixbuf(scale_cover(filename, content_area.get_allocation()))
+    else:
+        filename = None
+    
+    dialog.destroy()
+
+
+def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, popover: Gtk.Popover) -> None:
+    date = calendar.get_date()
+    entry.set_text(f'{date.year}-{date.month:02}-{date.day:02}')
+
 
 def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, popover: Gtk.Popover) -> None:
     model.append([entry.get_text()])
@@ -66,16 +94,19 @@ if __name__ == '__main__':
     date_entry = builder.get_object('date')
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
-    description = builder.get_object('description') # Replaced by WebKit2.WebView 
+    description = builder.get_object('description') # Replaced by WebKit2.WebView
+
+    popover_cal = builder.get_object('popovercalendar')
+    popover_entry = builder.get_object('popoverentry')
 
     list_model = Gtk.ListStore(str)
 
     # Signals 
     window.connect('destroy', Gtk.main_quit)
-    calendar.connect('day-selected', edit_date, date_entry)
-    date_entry.connect('icon-press', lambda _entry, _icon, _event, popover: popover.popup(), builder.get_object('popovercalendar'))
-    subject_entry.connect('activate', add_subject, list_model, builder.get_object('popoverentry'))
-    cover_button.connect('activate', set_cover)
+    calendar.connect('day-selected', edit_date, date_entry, popover_cal)
+    date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
+    subject_entry.connect('activate', add_subject, list_model, popover_entry)
+    cover_button.connect('clicked', set_cover, cover, content_area)
 
     if book:
         builder.get_object('headerbar').show_all()
@@ -103,7 +134,7 @@ if __name__ == '__main__':
             
             # TODO: Create a style sheet based on the current gtk style
             cm = WebKit2.UserContentManager()
-            css = 'body { background-color: black; text-align: center; color: white;}'
+            css = 'body { background-color: black; text-align: center; color: white; }'
             cm.add_style_sheet(WebKit2.UserStyleSheet(css, 0, 0, None, None))
             
             description = WebKit2.WebView.new_with_user_content_manager(cm)
