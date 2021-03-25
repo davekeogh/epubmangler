@@ -13,7 +13,7 @@ with EPub('Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
     book.set('title', 'Frankenstein 2')
 
     # Add and remove elements
-    book.add('creator', 'David Keogh', {'opf:role' : 'adapter'})
+    book.add('creator', 'David Keogh', {'opf:role' : 'aut'})
     book.remove('date', {'opf:event' : 'conversion'})
 
     # Convenience functions

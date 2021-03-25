@@ -166,7 +166,10 @@ if __name__ == '__main__':
 
         window.show()
         # The window needs to be shown before the cover so that it can be scaled to fit
-        cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
+        image_path = book.get_cover()
+
+        if image_path:
+            cover.set_from_pixbuf(scale_cover(image_path, content_area.get_allocation()))
     
     else:
         content_area.hide()
