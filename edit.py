@@ -24,14 +24,6 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
-def entry_changed(entry: Gtk.Entry, book: EPub, field: str) -> None:
-    book.set(field, entry.get_text())
-
-
-def open_file(_b: Gtk.Button, book: EPub, builder: Gtk.Builder) -> None:
-    pass
-
-
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -117,7 +109,6 @@ if __name__ == '__main__':
     # Widgets
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
-    open_button = builder.get_object('open_button')
     save_button = builder.get_object('save_button')
     menu_button = builder.get_object('menu_button')
     content_area = builder.get_object('box')
@@ -137,7 +128,6 @@ if __name__ == '__main__':
 
     # Signals 
     window.connect('destroy', Gtk.main_quit)
-    open_button.connect('clicked', open_file, book, window)
     save_button.connect('clicked', save_file, book, window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
@@ -156,7 +146,10 @@ if __name__ == '__main__':
             except NameError:
                 pass
 
-            builder.get_object(field).connect('changed', entry_changed, book, field)
+            builder.get_object(field).connect('changed',
+                                              lambda entry, book, field:
+                                              book.set(field, entry.get_text()),
+                                              book, field)
         
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
@@ -168,6 +161,8 @@ if __name__ == '__main__':
         except NameError:
             description_text = None
 
+        # TODO: Saving changes from the webkit editor is tricky
+        WebKit2 = False
         if WebKit2 and description_text:
             description.destroy()
             
@@ -177,7 +172,9 @@ if __name__ == '__main__':
             cm.add_style_sheet(WebKit2.UserStyleSheet(css, 0, 0, None, None))
             
             description = WebKit2.WebView.new_with_user_content_manager(cm)
+            description.connect('context-menu', lambda *args: True) # No context menu
             description.set_vexpand(True)
+            description.set_editable(True)
             description.load_bytes(GLib.Bytes(description_text.encode('utf-8')))
             builder.get_object('description_window').add(description)
             description.show()
@@ -185,6 +182,12 @@ if __name__ == '__main__':
         elif description_text:
             buffer = Gtk.TextBuffer()
             buffer.set_text(description_text)
+            
+            buffer.connect('changed',
+            lambda buff, book:
+            book.set('description', buff.get_text(buff.get_start_iter(), buff.get_end_iter(), True)),
+            book)
+            
             description.set_buffer(buffer)
 
         window.show()
@@ -198,5 +201,4 @@ if __name__ == '__main__':
         content_area.hide()
         window.show()
     
-
     Gtk.main()
