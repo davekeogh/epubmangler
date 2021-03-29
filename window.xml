@@ -11,70 +11,6 @@
       </object>
     </child>
   </object>
-  <object class="GtkPopoverMenu" id="popovermenu">
-    <property name="can_focus">False</property>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">2</property>
-        <property name="margin_right">2</property>
-        <property name="margin_top">2</property>
-        <property name="margin_bottom">2</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
-          <object class="GtkModelButton">
-            <property name="name">advanced_btn</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">advanced</property>
-            <property name="text" translatable="yes">Advanced Editor</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="name">file_manager_btn</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">file_manager</property>
-            <property name="text" translatable="yes">Open in File Manager</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton">
-            <property name="name">about_btn</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">about</property>
-            <property name="text" translatable="yes">About</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">main</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
-  </object>
   <object class="GtkWindow" id="window">
     <property name="can_focus">False</property>
     <property name="default_width">750</property>
@@ -127,12 +63,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkMenuButton" id="menubutton">
+              <object class="GtkMenuButton" id="menu_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="focus_on_click">False</property>
                 <property name="receives_default">True</property>
-                <property name="popover">popovermenu</property>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
@@ -184,6 +119,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <property name="tooltip_text" translatable="yes">Cover Image</property>
             <property name="valign">center</property>
             <property name="relief">none</property>
             <child>
@@ -191,11 +127,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="icon_size">6</property>
-                <child internal-child="accessible">
-                  <object class="AtkObject" id="cover-atkobject">
-                    <property name="AtkObject::accessible-name" translatable="yes">Cover image</property>
-                  </object>
-                </child>
               </object>
             </child>
           </object>
@@ -371,6 +302,7 @@
                     <property name="can_focus">True</property>
                     <property name="focus_on_click">False</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Add a new subject</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
                     <property name="relief">none</property>
@@ -381,11 +313,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="stock">gtk-add</property>
-                      </object>
-                    </child>
-                    <child internal-child="accessible">
-                      <object class="AtkObject" id="add_button-atkobject">
-                        <property name="AtkObject::accessible-name" translatable="yes">Add subject</property>
                       </object>
                     </child>
                   </object>
@@ -400,6 +327,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_text" translatable="yes">Remove the selected subject from the list</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
                     <property name="relief">none</property>
@@ -408,11 +336,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="stock">gtk-remove</property>
-                      </object>
-                    </child>
-                    <child internal-child="accessible">
-                      <object class="AtkObject" id="remove_button-atkobject">
-                        <property name="AtkObject::accessible-name" translatable="yes">Remove subject</property>
                       </object>
                     </child>
                   </object>

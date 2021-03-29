@@ -8,7 +8,7 @@ from epubmangler import EPub, IMAGE_TYPES, is_epub
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gtk, GLib
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 # We use webkit to render the description text if it's available
 try:
@@ -24,15 +24,15 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
-def open_file(button: Gtk.Button) -> None:
+def open_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     pass
 
 
-def save_file(button: Gtk.Button) -> None:
+def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     pass
 
 
-def set_cover(button: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
+def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -69,8 +69,11 @@ def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, popover: Gtk.Popover) ->
     popover.popdown()
 
 
-def remove_subject(entry: Gtk.Entry, model: Gtk.ListStore, view: Gtk.TreeView) -> None:
-    pass
+def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView) -> None:
+    selection = view.get_selection().get_selected()[1]
+    
+    if selection:
+        model.remove(selection)
 
 
 if __name__ == '__main__':
@@ -99,6 +102,7 @@ if __name__ == '__main__':
     title_label = builder.get_object('title_label')
     open_button = builder.get_object('open_button')
     save_button = builder.get_object('save_button')
+    menu_button = builder.get_object('menu_button')
     content_area = builder.get_object('box')
     cover = builder.get_object('cover')
     cover_button = builder.get_object('cover_button')
@@ -116,8 +120,8 @@ if __name__ == '__main__':
 
     # Signals 
     window.connect('destroy', Gtk.main_quit)
-    open_button.connect('clicked', open_file)
-    save_button.connect('clicked', save_file)
+    open_button.connect('clicked', open_file, book, window)
+    save_button.connect('clicked', save_file, book, window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry)
