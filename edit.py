@@ -19,7 +19,7 @@ except ValueError:
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
-    height = allocation.height 
+    height = allocation.height
     width = allocation.width / 3
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
@@ -28,13 +28,13 @@ def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                        Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-    
+
     if dialog.run() == Gtk.ResponseType.OK:
         filename = dialog.get_filename()
 
         if not os.path.exists(filename):
             book.save(filename)
-    
+
     dialog.destroy()
 
 
@@ -48,10 +48,10 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
     img_filter.add_mime_type('image/*')
     img_filter.set_name('Image files')
 
-    all_filter= Gtk.FileFilter()
+    all_filter = Gtk.FileFilter()
     all_filter.add_pattern('*')
     all_filter.set_name('All files')
-    
+
     dialog.add_filter(img_filter)
     dialog.add_filter(all_filter)
 
@@ -61,7 +61,7 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
             image.set_from_pixbuf(scale_cover(filename, content_area.get_allocation()))
             book.set_cover(filename)
-    
+
     dialog.destroy()
 
 
@@ -72,10 +72,10 @@ def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, popover: Gtk.Popover) ->
 
 def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
     new_subject = entry.get_text()
-    
+
     model.append([new_subject])
     book.add_subject(new_subject)
-    
+
     entry.set_text('')
     po.popdown()
 
@@ -83,7 +83,7 @@ def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: E
 def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     selection = view.get_selection().get_selected()[1]
     subject = model.get_value(selection, 0)
-    
+
     if selection:
         model.remove(selection)
         book.remove_subject(subject)
@@ -102,10 +102,10 @@ if __name__ == '__main__':
             book = EPub(os.path.join(folder, random.choice(books)))
     else:
         book = None
-    
+
     builder = Gtk.Builder()
     builder.add_from_file('window.xml')
-    
+
     # Widgets
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
@@ -119,14 +119,14 @@ if __name__ == '__main__':
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
     remove_button = builder.get_object('remove_button')
-    description = builder.get_object('description') # Replaced by WebKit2.WebView
+    description = builder.get_object('description')  # Replaced by WebKit2.WebView
 
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
 
     list_model = Gtk.ListStore(str)
 
-    # Signals 
+    # Signals
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         builder.get_object('headerbar').show_all()
         title_label.set_text(os.path.basename(book.file))
         window.set_title(os.path.basename(book.file))
-        
+
         for field in ('title', 'creator', 'date', 'publisher', 'language'):
             try:
                 builder.get_object(field).set_text(book.get(field).text)
@@ -150,7 +150,7 @@ if __name__ == '__main__':
                                               lambda entry, book, field:
                                               book.set(field, entry.get_text()),
                                               book, field)
-        
+
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
         subject_view.set_model(list_model)
@@ -165,14 +165,14 @@ if __name__ == '__main__':
         WebKit2 = False
         if WebKit2 and description_text:
             description.destroy()
-            
+
             # TODO: Create a style sheet based on the current gtk style
             cm = WebKit2.UserContentManager()
             css = 'body { background-color: black; text-align: center; color: white; }'
             cm.add_style_sheet(WebKit2.UserStyleSheet(css, 0, 0, None, None))
-            
+
             description = WebKit2.WebView.new_with_user_content_manager(cm)
-            description.connect('context-menu', lambda *args: True) # No context menu
+            description.connect('context-menu', lambda *args: True)  # No context menu
             description.set_vexpand(True)
             description.set_editable(True)
             description.load_bytes(GLib.Bytes(description_text.encode('utf-8')))
@@ -182,12 +182,14 @@ if __name__ == '__main__':
         elif description_text:
             buffer = Gtk.TextBuffer()
             buffer.set_text(description_text)
-            
+
             buffer.connect('changed',
-            lambda buff, book:
-            book.set('description', buff.get_text(buff.get_start_iter(), buff.get_end_iter(), True)),
-            book)
-            
+                           lambda buff, book:
+                           book.set('description',
+                                    buff.get_text(buff.get_start_iter(),
+                                                  buff.get_end_iter(), True)),
+                           book)
+
             description.set_buffer(buffer)
 
         window.show()
@@ -196,9 +198,9 @@ if __name__ == '__main__':
 
         if image_path:
             cover.set_from_pixbuf(scale_cover(image_path, content_area.get_allocation()))
-    
+
     else:
         content_area.hide()
         window.show()
-    
+
     Gtk.main()
