@@ -24,15 +24,29 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
-def open_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
+def entry_changed(entry: Gtk.Entry, book: EPub, field: str) -> None:
+    book.set(field, entry.get_text())
+
+
+def open_file(_b: Gtk.Button, book: EPub, builder: Gtk.Builder) -> None:
     pass
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
-    pass
+    dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
+    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                       Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+    
+    if dialog.run() == Gtk.ResponseType.OK:
+        filename = dialog.get_filename()
+
+        if not os.path.exists(filename):
+            book.save(filename)
+    
+    dialog.destroy()
 
 
-def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
+def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -54,6 +68,7 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box) -> None:
 
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
             image.set_from_pixbuf(scale_cover(filename, content_area.get_allocation()))
+            book.set_cover(filename)
     
     dialog.destroy()
 
@@ -63,17 +78,23 @@ def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, popover: Gtk.Popover) ->
     entry.set_text(f'{date.year}-{date.month:02}-{date.day:02}')
 
 
-def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, popover: Gtk.Popover) -> None:
-    model.append([entry.get_text()])
+def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
+    new_subject = entry.get_text()
+    
+    model.append([new_subject])
+    book.add_subject(new_subject)
+    
     entry.set_text('')
-    popover.popdown()
+    po.popdown()
 
 
-def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView) -> None:
+def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     selection = view.get_selection().get_selected()[1]
+    subject = model.get_value(selection, 0)
     
     if selection:
         model.remove(selection)
+        book.remove_subject(subject)
 
 
 if __name__ == '__main__':
@@ -89,10 +110,6 @@ if __name__ == '__main__':
             book = EPub(os.path.join(folder, random.choice(books)))
     else:
         book = None
-    
-    # TODO: Delete
-    if book:
-        print(book.file)
     
     builder = Gtk.Builder()
     builder.add_from_file('window.xml')
@@ -124,9 +141,9 @@ if __name__ == '__main__':
     save_button.connect('clicked', save_file, book, window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
-    subject_entry.connect('activate', add_subject, list_model, popover_entry)
-    remove_button.connect('clicked', remove_subject, list_model, subject_view)
-    cover_button.connect('clicked', set_cover, cover, content_area)
+    subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
+    remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
+    cover_button.connect('clicked', set_cover, cover, content_area, book)
 
     if book:
         builder.get_object('headerbar').show_all()
@@ -138,6 +155,8 @@ if __name__ == '__main__':
                 builder.get_object(field).set_text(book.get(field).text)
             except NameError:
                 pass
+
+            builder.get_object(field).connect('changed', entry_changed, book, field)
         
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
