@@ -20,6 +20,10 @@ def file_as(name: str) -> str:
     `file_as('Mary Wollstonecraft Shelley')` returns `'Shelley, Mary Wollstonecraft'`"""
     
     parts = name.split()
+
+    if not parts:
+        return name
+
     name = parts[0]
     
     if len(parts) == 1:
