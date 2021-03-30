@@ -30,6 +30,17 @@
             <property name="position">1</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkToggleButton" id="details_button">
+            <property name="label" translatable="yes">Details</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+          </object>
+          <packing>
+            <property name="position">1</property>
+          </packing>
+        </child>
         <child type="title">
           <object class="GtkBox">
             <property name="visible">True</property>
@@ -129,7 +140,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkGrid">
+          <object class="GtkGrid" id="main">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="row_spacing">6</property>
@@ -421,10 +432,18 @@
           </packing>
         </child>
         <child>
-          <object class="GtkTreeView" id="details">
+          <object class="GtkScrolledWindow" id="details_window">
             <property name="can_focus">True</property>
-            <child internal-child="selection">
-              <object class="GtkTreeSelection"/>
+            <property name="hexpand">True</property>
+            <property name="shadow_type">in</property>
+            <child>
+              <object class="GtkTreeView" id="details">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection"/>
+                </child>
+              </object>
             </child>
           </object>
           <packing>

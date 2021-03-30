@@ -3,7 +3,7 @@
 
 import mimetypes, os, os.path, random, sys
 
-from epubmangler import EPub, IMAGE_TYPES, is_epub
+from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces
 
 import gi
 gi.require_version('Gdk', '3.0')
@@ -36,6 +36,12 @@ def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
             book.save(filename)
 
     dialog.destroy()
+
+
+def details_toggle(button: Gtk.ToggleButton, main: Gtk.Grid, details: Gtk.TreeView) -> None:
+    details_on = button.get_active()
+    details.set_visible(details_on)
+    main.set_visible(not details_on)
 
 
 def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
@@ -110,8 +116,10 @@ if __name__ == '__main__':
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
     save_button = builder.get_object('save_button')
+    details_button = builder.get_object('details_button')
     menu_button = builder.get_object('menu_button')
     content_area = builder.get_object('box')
+    main_area = builder.get_object('main')
     cover = builder.get_object('cover')
     cover_button = builder.get_object('cover_button')
     calendar = builder.get_object('calendar')
@@ -120,15 +128,19 @@ if __name__ == '__main__':
     subject_entry = builder.get_object('subject_entry')
     remove_button = builder.get_object('remove_button')
     description = builder.get_object('description')  # Replaced by WebKit2.WebView
+    details = builder.get_object('details')
+    details_window = builder.get_object('details_window')
 
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
 
     list_model = Gtk.ListStore(str)
+    details_model = Gtk.ListStore(str, str, str)
 
     # Signals
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
+    details_button.connect('toggled', details_toggle, main_area, details_window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
@@ -155,6 +167,19 @@ if __name__ == '__main__':
             list_model.append([subject.text])
         subject_view.set_model(list_model)
         subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
+
+        for meta in book.metadata():
+            details_model.append([strip_namespace(meta.tag), meta.text,
+                                 str(strip_namespaces(meta.attrib))])
+        details.set_model(details_model)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        # TODO: Connect the 'edited' signal
+
+        details.append_column(Gtk.TreeViewColumn('Tag', cell, text=0))
+        details.append_column(Gtk.TreeViewColumn('Text', cell, text=1))
+        details.append_column(Gtk.TreeViewColumn('Attrib', cell, text=2))
 
         try:
             description_text = book.get('description').text
