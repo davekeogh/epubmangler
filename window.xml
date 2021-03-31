@@ -14,7 +14,6 @@
   <object class="GtkWindow" id="window">
     <property name="can_focus">False</property>
     <property name="default_width">750</property>
-    <property name="default_height">450</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
         <property name="visible">True</property>
@@ -230,12 +229,13 @@
               <object class="GtkScrolledWindow" id="description_window">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="vexpand">True</property>
                 <property name="shadow_type">in</property>
+                <property name="min_content_height">90</property>
                 <child>
                   <object class="GtkTextView" id="description">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="vexpand">True</property>
                     <property name="wrap_mode">word</property>
                     <property name="left_margin">6</property>
                     <property name="right_margin">6</property>
@@ -440,6 +440,7 @@
               <object class="GtkTreeView" id="details">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="rules_hint">True</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection"/>
                 </child>

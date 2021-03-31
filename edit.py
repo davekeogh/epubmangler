@@ -8,7 +8,7 @@ from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_names
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
 
 # We use webkit to render the description text if it's available
 try:
@@ -22,6 +22,10 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     height = allocation.height
     width = allocation.width / 3
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
+
+
+def cell_edited(_c: Gtk.CellRendererText, path: str, new_text: str, model: Gtk.ListStore, col: int) -> None:
+    model[path][col] = new_text
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -169,17 +173,35 @@ if __name__ == '__main__':
         subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
         for meta in book.metadata():
-            details_model.append([strip_namespace(meta.tag), meta.text,
-                                 str(strip_namespaces(meta.attrib))])
+            if strip_namespace(meta.tag) != 'description':
+                details_model.append([strip_namespace(meta.tag), meta.text,
+                                     str(strip_namespaces(meta.attrib))])
         details.set_model(details_model)
 
         cell = Gtk.CellRendererText()
         cell.set_property('editable', True)
-        # TODO: Connect the 'edited' signal
+        cell.connect('edited', cell_edited, details_model, 0)
 
-        details.append_column(Gtk.TreeViewColumn('Tag', cell, text=0))
-        details.append_column(Gtk.TreeViewColumn('Text', cell, text=1))
-        details.append_column(Gtk.TreeViewColumn('Attrib', cell, text=2))
+        column = Gtk.TreeViewColumn('Tag', cell, text=0)
+        column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+        details.append_column(column)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        cell.connect('edited', cell_edited, details_model, 1)
+
+        column = Gtk.TreeViewColumn('Text', cell, text=1)
+        column.set_min_width(details.get_allocation().width * 0.6)
+        column.set_expand(True)
+        details.append_column(column)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        cell.connect('edited', cell_edited, details_model, 2)
+
+        column = Gtk.TreeViewColumn('Attrib', cell, text=2)
+        column.set_expand(True)
+        details.append_column(column)
 
         try:
             description_text = book.get('description').text
@@ -223,6 +245,8 @@ if __name__ == '__main__':
 
         if image_path:
             cover.set_from_pixbuf(scale_cover(image_path, content_area.get_allocation()))
+        else:
+            cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
     else:
         content_area.hide()
