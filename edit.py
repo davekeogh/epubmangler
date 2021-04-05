@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
+# TODO:
+# - look into using libhandy widgets, they will be added to Gtk 4 with libadwaita
+# - Use Gtk.Application, Gtk.ApplicationWindow
+
 import mimetypes, os, os.path, random, sys
 
 from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces
@@ -106,8 +110,8 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
-            folder = 'calibre'
-            # folder = 'gutenberg'
+            folder = 'books/calibre'
+            # folder = 'books/gutenberg'
             books = os.listdir(folder)
             book = EPub(os.path.join(folder, random.choice(books)))
     else:

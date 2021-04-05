@@ -8,8 +8,8 @@ import xml.etree.ElementTree as ET
 import epubmangler
 
 # Select a book from local selection of epubs
-DIR = 'gutenberg'
-# DIR = 'calibre'
+DIR = 'books/gutenberg'
+# DIR = 'books/calibre'
 BOOKS = os.listdir(DIR)
 BOOK = os.path.join(DIR, random.choice(BOOKS))
 
@@ -61,7 +61,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.book.set('language', 'en', {'xsi:type' : 'dcterms:RFC4646'})
 
     def test_set_cover(self):
-        self.book.set_cover('cat_picture.jpg')
+        self.book.set_cover('example/cat_picture.jpg')
         self.assertEqual(os.path.basename(self.book.get_cover()), 'cat_picture.jpg')
     
     def test_set_identifier(self):

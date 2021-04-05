@@ -9,11 +9,10 @@ htmlcov/
 .vscode
 
 # Epub files for tests:
-gutenberg/
-bad/
-calibre/
+books/
 
 # Test artifacts:
+test/
 content.opf
-Frankenstein 2.epub
+example/Frankenstein 2.epub
 test.epub
