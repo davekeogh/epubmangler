@@ -22,6 +22,11 @@ except ValueError:
     WebKit2 = None
 
 
+def volume_added(monitor, volume):
+    if volume.get_name() == 'Kindle' and volume.get_identifier('label') == 'Kindle':
+        print('This is a Kindle')
+
+
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     height = allocation.height
     width = allocation.width / 3
@@ -116,6 +121,9 @@ if __name__ == '__main__':
             book = EPub(os.path.join(folder, random.choice(books)))
     else:
         book = None
+    
+    volume_monitor = Gio.VolumeMonitor.get()
+    volume_monitor.connect('volume-added', volume_added)
 
     builder = Gtk.Builder()
     builder.add_from_file('window.xml')
