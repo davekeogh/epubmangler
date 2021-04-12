@@ -283,12 +283,16 @@ class EPub:
     def set_cover(self, path: str) -> None:
         """Replaces the cover image of the book with `path` provided it is an image."""
 
-        cover = self.get_cover()
         based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
         name = os.path.basename(path)
         mime = mimetypes.guess_type(path)[0]
 
         if mime in IMAGE_TYPES and os.path.exists(path):
+            # Don't delete the old image. It is also referenced in the HTML.
+            # TODO: find replace all instances of the image in the book contents.
+            # cover = self.get_cover()
+            # os.remove(cover)
+
             id_num = self.get_all('cover')[0].attrib['content']
             element = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_num}\"]",
                                                 NAMESPACES)
@@ -297,7 +301,6 @@ class EPub:
             element.attrib['href'] = name
 
             shutil.copy(path, os.path.join(based, name))
-            os.remove(cover)
 
 
     def set_identifier(self, name: str, scheme: str = None) -> None:
