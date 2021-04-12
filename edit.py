@@ -12,19 +12,12 @@ from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_names
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
-
-# We use webkit to render the description text if it's available
-try:
-    gi.require_version('WebKit2', '4.0')
-    from gi.repository import WebKit2
-except ValueError:
-    WebKit2 = None
+from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 
-def volume_added(monitor, volume):
+def volume_added(monitor: Gio.VolumeMonitor, volume: Gio.Volume, button: Gtk.Button):
     if volume.get_name() == 'Kindle' and volume.get_identifier('label') == 'Kindle':
-        print('This is a Kindle')
+        button.show()
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -51,10 +44,11 @@ def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog.destroy()
 
 
-def details_toggle(button: Gtk.ToggleButton, main: Gtk.Grid, details: Gtk.TreeView) -> None:
-    details_on = button.get_active()
+def details_toggle(b: Gtk.ToggleButton, cover: Gtk.Button, main: Gtk.Grid, details: Gtk.TreeView) -> None:
+    details_on = b.get_active()
     details.set_visible(details_on)
     main.set_visible(not details_on)
+    cover.set_visible(not details_on)
 
 
 def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
@@ -121,9 +115,6 @@ if __name__ == '__main__':
             book = EPub(os.path.join(folder, random.choice(books)))
     else:
         book = None
-    
-    volume_monitor = Gio.VolumeMonitor.get()
-    volume_monitor.connect('volume-added', volume_added)
 
     builder = Gtk.Builder()
     builder.add_from_file('window.xml')
@@ -131,6 +122,7 @@ if __name__ == '__main__':
     # Widgets
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
+    device_button = builder.get_object('device_button')
     save_button = builder.get_object('save_button')
     details_button = builder.get_object('details_button')
     menu_button = builder.get_object('menu_button')
@@ -153,18 +145,21 @@ if __name__ == '__main__':
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
 
+    volume_monitor = Gio.VolumeMonitor.get()
+
     # Signals
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
-    details_button.connect('toggled', details_toggle, main_area, details_window)
+    details_button.connect('toggled', details_toggle, cover_button, main_area, details_window)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
+    volume_monitor.connect('volume-added', volume_added, device_button)
 
     if book:
-        builder.get_object('headerbar').show_all()
+        save_button.show()
         title_label.set_text(os.path.basename(book.file))
         window.set_title(os.path.basename(book.file))
 
@@ -220,25 +215,7 @@ if __name__ == '__main__':
         except NameError:
             description_text = None
 
-        # TODO: Saving changes from the webkit editor is tricky
-        WebKit2 = False
-        if WebKit2 and description_text:
-            description.destroy()
-
-            # TODO: Create a style sheet based on the current gtk style
-            cm = WebKit2.UserContentManager()
-            css = 'body { background-color: black; text-align: center; color: white; }'
-            cm.add_style_sheet(WebKit2.UserStyleSheet(css, 0, 0, None, None))
-
-            description = WebKit2.WebView.new_with_user_content_manager(cm)
-            description.connect('context-menu', lambda *args: True)  # No context menu
-            description.set_vexpand(True)
-            description.set_editable(True)
-            description.load_bytes(GLib.Bytes(description_text.encode('utf-8')))
-            builder.get_object('description_window').add(description)
-            description.show()
-
-        elif description_text:
+        if description_text:
             buffer = Gtk.TextBuffer()
             buffer.set_text(description_text)
 
