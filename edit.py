@@ -5,7 +5,7 @@
 # - look into using libhandy widgets, they will be added to Gtk 4 with libadwaita
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
-import mimetypes, os, os.path, random, sys
+import mimetypes, os, os.path, random, shutil, sys
 
 from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces
 
@@ -15,9 +15,24 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 
-def volume_added(monitor: Gio.VolumeMonitor, volume: Gio.Volume, button: Gtk.Button):
-    if volume.get_name() == 'Kindle' and volume.get_identifier('label') == 'Kindle':
-        button.show()
+def send_book(button: Gtk.Button, book: EPub, device_path: str, window: Gtk.Window) -> None:
+    file_name = os.path.basename(book.file)
+    copy_to = os.path.join(device_path, file_name)
+    
+    if not os.path.exists(copy_to):
+        book.save(copy_to)
+    
+    else:
+        dialog = Gtk.MessageDialog(text='File already exists',
+                                   message_type=Gtk.MessageType.QUESTION)
+        dialog.format_secondary_text(f'Replace file "{file_name}"?')
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                           Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        
+        if dialog.run() == Gtk.ResponseType.OK:
+            book.save(copy_to, overwrite=True)
+        
+        dialog.destroy()
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -146,7 +161,19 @@ if __name__ == '__main__':
     details_model = Gtk.ListStore(str, str, str)
 
     volume_monitor = Gio.VolumeMonitor.get()
+    
+    for drive in volume_monitor.get_connected_drives():
+        if drive.get_name() == 'Kindle Internal Storage':
+            mount = drive.get_volumes()[0].get_mount()
 
+            if mount:
+                root = os.path.join(mount.get_root().get_path(), 'documents')
+    
+                if os.path.exists(root):
+                    device_button.connect('clicked', send_book, book, root, window)
+                    device_button.set_label('Send to Kindle')
+                    device_button.show()
+    
     # Signals
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
@@ -156,7 +183,6 @@ if __name__ == '__main__':
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
-    volume_monitor.connect('volume-added', volume_added, device_button)
 
     if book:
         save_button.show()
@@ -176,6 +202,7 @@ if __name__ == '__main__':
 
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
+        
         subject_view.set_model(list_model)
         subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
@@ -219,12 +246,13 @@ if __name__ == '__main__':
             buffer = Gtk.TextBuffer()
             buffer.set_text(description_text)
 
-            buffer.connect('changed',
-                           lambda buff, book:
-                           book.set('description',
-                                    buff.get_text(buff.get_start_iter(),
-                                                  buff.get_end_iter(), True)),
-                           book)
+            buffer.connect(
+                'changed',
+                lambda buffer, book: 
+                    book.set('description', buffer.get_text(buffer.get_start_iter(),
+                             buffer.get_end_iter(), True)),
+                book
+            )
 
             description.set_buffer(buffer)
 
