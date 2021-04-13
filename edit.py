@@ -77,12 +77,11 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
     img_filter = Gtk.FileFilter()
     img_filter.add_mime_type('image/*')
     img_filter.set_name('Image files')
+    dialog.add_filter(img_filter)
 
     all_filter = Gtk.FileFilter()
     all_filter.add_pattern('*')
     all_filter.set_name('All files')
-
-    dialog.add_filter(img_filter)
     dialog.add_filter(all_filter)
 
     if dialog.run() == Gtk.ResponseType.OK:
@@ -112,11 +111,10 @@ def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: E
 
 def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     selection = view.get_selection().get_selected()[1]
-    subject = model.get_value(selection, 0)
 
     if selection:
         model.remove(selection)
-        book.remove_subject(subject)
+        book.remove_subject(model.get_value(selection, 0))
 
 
 if __name__ == '__main__':
@@ -142,6 +140,7 @@ if __name__ == '__main__':
     device_button = builder.get_object('device_button')
     save_button = builder.get_object('save_button')
     details_button = builder.get_object('details_button')
+    open_button = builder.get_object('open_button')
     menu_button = builder.get_object('menu_button')
     content_area = builder.get_object('box')
     main_area = builder.get_object('main')
@@ -154,7 +153,8 @@ if __name__ == '__main__':
     remove_button = builder.get_object('remove_button')
     description = builder.get_object('description')  # Replaced by WebKit2.WebView
     details = builder.get_object('details')
-    details_window = builder.get_object('details_window')
+    details_area = builder.get_object('details_area')
+    infobar = builder.get_object('infobar')
 
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
@@ -164,32 +164,33 @@ if __name__ == '__main__':
 
     volume_monitor = Gio.VolumeMonitor.get()
 
-    for drive in volume_monitor.get_connected_drives():
-        if drive.get_name() == 'Kindle Internal Storage':
-            mount = drive.get_volumes()[0].get_mount()
-
-            if mount:
-                root = os.path.join(mount.get_root().get_path(), 'documents')
-
-                if os.path.exists(root):
-                    device_button.connect('clicked', send_book, book, root, window)
-                    device_button.set_label('Send to Kindle')
-                    device_button.show()
-
     # Signals
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
-    details_button.connect('toggled', details_toggle, cover_button, main_area, details_window)
+    details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
     calendar.connect('day-selected', edit_date, date_entry, popover_cal)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
+    infobar.connect('response', lambda infobar, _response: infobar.destroy())
 
     if book:
-        save_button.show()
         title_label.set_text(os.path.basename(book.file))
         window.set_title(os.path.basename(book.file))
+
+        # Look for connected AND mounted ebook readers
+        for drive in volume_monitor.get_connected_drives():
+            if drive.get_name() == 'Kindle Internal Storage':
+                mount = drive.get_volumes()[0].get_mount()
+
+                if mount:
+                    root = os.path.join(mount.get_root().get_path(), 'documents')
+
+                    if os.path.exists(root):
+                        device_button.connect('clicked', send_book, book, root, window)
+                        device_button.set_label('Send to Kindle')
+                        device_button.show()
 
         for field in ('title', 'creator', 'date', 'publisher', 'language'):
             try:
@@ -218,7 +219,7 @@ if __name__ == '__main__':
         cell.set_property('editable', True)
         cell.connect('edited', cell_edited, details_model, 0)
 
-        column = Gtk.TreeViewColumn('Tag', cell, text=0)
+        column = Gtk.TreeViewColumn('Element', cell, text=0)
         column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         details.append_column(column)
 
@@ -235,7 +236,7 @@ if __name__ == '__main__':
         cell.set_property('editable', True)
         cell.connect('edited', cell_edited, details_model, 2)
 
-        column = Gtk.TreeViewColumn('Attrib', cell, text=2)
+        column = Gtk.TreeViewColumn('Attributes', cell, text=2)
         column.set_expand(True)
         details.append_column(column)
 
@@ -267,6 +268,10 @@ if __name__ == '__main__':
 
     else:
         content_area.hide()
+        details_button.hide()
+        save_button.hide()
+        device_button.hide()
+        open_button.show()
         window.show()
 
     Gtk.main()
