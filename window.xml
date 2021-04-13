@@ -74,7 +74,6 @@
             <child>
               <object class="GtkButton" id="device_button">
                 <property name="label" translatable="yes">Send to Device</property>
-                <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
               </object>
@@ -249,69 +248,64 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Description:</property>
+                <property name="label" translatable="yes">Date:</property>
                 <property name="xalign">1</property>
-                <property name="yalign">0</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">6</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="description_window">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="vexpand">True</property>
-                <property name="shadow_type">in</property>
-                <property name="min_content_height">90</property>
-                <child>
-                  <object class="GtkTextView" id="description">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="wrap_mode">word</property>
-                    <property name="left_margin">6</property>
-                    <property name="right_margin">6</property>
-                    <property name="top_margin">6</property>
-                    <property name="bottom_margin">6</property>
-                    <property name="accepts_tab">False</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkOverlay">
+              <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="spacing">6</property>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkEntry" id="date">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkTreeView" id="subjects">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="headers_visible">False</property>
-                        <property name="rules_hint">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
-                        </child>
-                      </object>
-                    </child>
+                    <property name="hexpand">True</property>
+                    <property name="max_length">30</property>
+                    <property name="secondary_icon_name">calendar</property>
                   </object>
                   <packing>
-                    <property name="index">-1</property>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="hexpand">False</property>
+                    <property name="label" translatable="yes">Language:</property>
+                    <property name="xalign">1</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="language">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="max_length">3</property>
+                    <property name="width_chars">3</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">5</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
@@ -384,78 +378,68 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">5</property>
+                <property name="top_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="shadow_type">in</property>
+                <child>
+                  <object class="GtkTreeView" id="subjects">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="headers_visible">False</property>
+                    <property name="rules_hint">True</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Date:</property>
+                <property name="label" translatable="yes">Description:</property>
                 <property name="xalign">1</property>
+                <property name="yalign">0</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">5</property>
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
+              <object class="GtkScrolledWindow" id="description_window">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="spacing">6</property>
+                <property name="can_focus">True</property>
+                <property name="vexpand">True</property>
+                <property name="shadow_type">in</property>
+                <property name="min_content_height">90</property>
                 <child>
-                  <object class="GtkEntry" id="date">
+                  <object class="GtkTextView" id="description">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="hexpand">True</property>
-                    <property name="max_length">30</property>
-                    <property name="secondary_icon_name">calendar</property>
+                    <property name="wrap_mode">word</property>
+                    <property name="left_margin">6</property>
+                    <property name="right_margin">6</property>
+                    <property name="top_margin">6</property>
+                    <property name="bottom_margin">6</property>
+                    <property name="accepts_tab">False</property>
                   </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="hexpand">False</property>
-                    <property name="label" translatable="yes">Language:</property>
-                    <property name="xalign">1</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkEntry" id="language">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="max_length">3</property>
-                    <property name="width_chars">3</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
-                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">5</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -520,7 +504,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="details_window">
+              <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
@@ -530,7 +514,6 @@
                   <object class="GtkTreeView" id="details">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="rules_hint">True</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
                     </child>
