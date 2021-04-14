@@ -1,7 +1,7 @@
 """Globals used by epubmangler"""
 
 # Xpath queries for elements we will edit
-# TODO: Make sure evrything is on here
+# TODO: Make sure everything is on here
 XPATHS = {
     'cover'         :   ['./opf:metadata/opf:meta/[@name="cover"]'],
 
@@ -14,6 +14,7 @@ XPATHS = {
     'subject'       :   ['./opf:metadata/dc:subject'],
     'publisher'     :   ['./opf:metadata/dc:publisher'],
     'language'      :   ['./opf:metadata/dc:language'],
+    'rights'        :   ['./opf:metadata/dc:rights'],
 
     'date'          :   ['./opf:metadata/dc:date',
                          './opf:metadata/dc:date/[@opf:event="publication"]',
@@ -27,15 +28,21 @@ XPATHS = {
     'uuid'          :   ['./opf:metadata/dc:identifier/[@opf:scheme="uuid"]'
                          './opf:metadata/dc:identifier/[@opf:scheme="UUID"]'],
     'uri'           :   ['./opf:metadata/dc:identifier/[@opf:scheme="uri"]'
-                         './opf:metadata/dc:identifier/[@opf:scheme="URI"]'],}
+                         './opf:metadata/dc:identifier/[@opf:scheme="URI"]'],
+    
+    # This is not useful for much
+    'meta'          :   ['./opf:metadata/opf:meta']
+}
 
 # These are all the XML namespaces that we should encounter
-NAMESPACES = {'container' : 'urn:oasis:names:tc:opendocument:xmlns:container',
-              'dc'        : 'http://purl.org/dc/elements/1.1/',
-              'dcterms'   : 'http://purl.org/dc/terms/',
-              'opf'       : 'http://www.idpf.org/2007/opf',
-              'xsi'       : 'http://www.w3.org/2001/XMLSchema-instance',
-              ''          : 'http://www.idpf.org/2007/opf'}
+NAMESPACES = {
+    'container' : 'urn:oasis:names:tc:opendocument:xmlns:container',
+    'dc'        : 'http://purl.org/dc/elements/1.1/',
+    'dcterms'   : 'http://purl.org/dc/terms/',
+    'opf'       : 'http://www.idpf.org/2007/opf',
+    'xsi'       : 'http://www.w3.org/2001/XMLSchema-instance',
+    ''          : 'http://www.idpf.org/2007/opf'
+}
 
 # Only these types are valid as cover images
 IMAGE_TYPES = ('image/jpeg', 'image/png', 'image/gif')

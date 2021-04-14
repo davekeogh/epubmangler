@@ -35,6 +35,7 @@ class EPub:
     """A Python object representing an epub ebook's editable metadata."""
 
     etree: ET.ElementTree
+    opf: str
     file: str
     tempdir: TempDir
     version: str
@@ -55,7 +56,8 @@ class EPub:
             zip_file.extractall(self.tempdir.name)
 
         try:
-            self.etree = ET.parse(find_opf_files(self.tempdir.name)[0])
+            self.opf = find_opf_files(self.tempdir.name)[0]
+            self.etree = ET.parse(self.opf)
             self.version = self.etree.getroot().attrib['version']
         except IndexError:
             raise ValueError(f"{path} does not appear to be a valid .epub file.")
@@ -146,7 +148,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
             element = self.etree.getroot().find(xpath, NAMESPACES)
@@ -168,7 +170,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
             for element in self.etree.getroot().findall(xpath, NAMESPACES):
