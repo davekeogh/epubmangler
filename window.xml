@@ -298,8 +298,8 @@
                   <object class="GtkEntry" id="language">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="max_length">3</property>
-                    <property name="width_chars">3</property>
+                    <property name="max_length">7</property>
+                    <property name="width_chars">7</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
