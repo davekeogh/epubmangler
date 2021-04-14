@@ -2,20 +2,46 @@
 """A GTK interface to the epubmangler library."""
 
 # TODO:
-# - look into using libhandy widgets, they will be added to Gtk 4 with libadwaita
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
 import mimetypes, os, os.path, random, subprocess, sys
 
-from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces
+from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces, VERSION
 
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
+# TODO: Delete
+# This stuff needs to get set during install
+BUILDER = '/home/david/Projects/epubmangler/gtk/widgets.xml'
+FOLDER = '/home/david/Projects/epubmangler/books/calibre'
+ICON = '/home/david/Projects/epubmangler/gtk/icon.svg'
+
+
+def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
+    height = allocation.height
+    width = allocation.width / 3
+    return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
+
 
 # Signal callbacks
+def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
+    dialog = Gtk.AboutDialog()
+    dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
+    dialog.set_program_name('EPub Mangler')
+    dialog.set_version(VERSION)
+    dialog.set_copyright('Copyright © 2020-2021 David Keogh')
+    dialog.set_license_type(Gtk.License.GPL_3_0)
+    dialog.set_authors(['David Keogh <davidtkeogh@gmail.com>'])
+    dialog.set_website('https://github.com/davekeogh/epubmangler')
+    dialog.set_transient_for(window)
+
+    if dialog.run() == Gtk.ResponseType.DELETE_EVENT:
+        dialog.destroy()
+
+
 def add_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     ...
 
@@ -46,12 +72,6 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
             book.save(copy_to, overwrite=True)
 
         dialog.destroy()
-
-
-def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
-    height = allocation.height
-    width = allocation.width / 3
-    return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
 def cell_edited(_c: Gtk.CellRendererText,
@@ -138,15 +158,13 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
-            folder = 'books/calibre'
-            # folder = 'books/gutenberg'
-            books = os.listdir(folder)
-            book = EPub(os.path.join(folder, random.choice(books)))
+            books = os.listdir(FOLDER)
+            book = EPub(os.path.join(FOLDER, random.choice(books)))
     else:
         book = None
 
     builder = Gtk.Builder()
-    builder.add_from_file('window.xml')
+    builder.add_from_file(BUILDER)
 
     # Widgets
     window = builder.get_object('window')
@@ -174,6 +192,8 @@ if __name__ == '__main__':
     infobar = builder.get_object('infobar')
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
+    about_button = builder.get_object('about_button')
+    quit_button = builder.get_object('quit_button')
 
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
@@ -192,6 +212,8 @@ if __name__ == '__main__':
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     edit_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
+    about_button.connect('clicked', about, window)
+    quit_button.connect('clicked', Gtk.main_quit)
 
     if book:
         title_label.set_text(os.path.basename(book.file))

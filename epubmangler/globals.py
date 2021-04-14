@@ -1,5 +1,7 @@
 """Globals used by epubmangler"""
 
+VERSION = '0.1.0'
+
 # Xpath queries for elements we will edit
 XPATHS = {
     # http://idpf.org/epub/20/spec/OPF_2.0_final_spec.html
