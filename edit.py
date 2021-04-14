@@ -15,13 +15,14 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 
+# Signal callbacks
 def add_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     ...
 
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     iter = view.get_selection().get_selected()[1]
-    
+
     if iter:
         book.remove(model.get_value(iter, 0), model.get_value(iter, 2))
         model.remove(iter)
@@ -129,6 +130,7 @@ def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, boo
         model.remove(iter)
 
 
+# Entry point
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if is_epub(sys.argv[1]):
@@ -168,15 +170,13 @@ if __name__ == '__main__':
     details_area = builder.get_object('details_area')
     add_element_button = builder.get_object('details_add_button')
     remove_element_button = builder.get_object('details_remove_button')
-    text_editor_button = builder.get_object('details_edit_button')
+    edit_button = builder.get_object('details_edit_button')
     infobar = builder.get_object('infobar')
-
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
 
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
-
     volume_monitor = Gio.VolumeMonitor.get()
 
     # Signals
@@ -184,14 +184,14 @@ if __name__ == '__main__':
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
     calendar.connect('day-selected', edit_date, date_entry)
-    date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
-    infobar.connect('response', lambda infobar, _response: infobar.destroy())
     add_element_button.connect('clicked', add_element, details_model, details, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
-    text_editor_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
+    infobar.connect('response', lambda infobar, _response: infobar.destroy())
+    date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
+    edit_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
 
     if book:
         title_label.set_text(os.path.basename(book.file))
@@ -210,6 +210,7 @@ if __name__ == '__main__':
                         device_button.set_label('Send to Kindle')
                         device_button.show()
 
+        # Populate fields
         for field in ('title', 'creator', 'date', 'publisher', 'language'):
             try:
                 builder.get_object(field).set_text(book.get(field).text)
@@ -227,6 +228,25 @@ if __name__ == '__main__':
         subject_view.set_model(list_model)
         subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
+        # Description
+        try:
+            description_text = book.get('description').text
+        except NameError:
+            description_text = None
+
+        if description_text:
+            buffer = Gtk.TextBuffer()
+            buffer.set_text(description_text)
+
+            buffer.connect('changed',
+                           lambda buffer, book:
+                           book.set('description', buffer.get_text(buffer.get_start_iter(),
+                                                                   buffer.get_end_iter(), True)),
+                           book)
+
+            description.set_buffer(buffer)
+
+        # Details view
         for meta in book.metadata():
             if strip_namespace(meta.tag) != 'description':
                 details_model.append([strip_namespace(meta.tag), meta.text,
@@ -258,29 +278,11 @@ if __name__ == '__main__':
         column.set_expand(True)
         details.append_column(column)
 
-        try:
-            description_text = book.get('description').text
-        except NameError:
-            description_text = None
-
-        if description_text:
-            buffer = Gtk.TextBuffer()
-            buffer.set_text(description_text)
-
-            buffer.connect('changed',
-                           lambda buffer, book:
-                           book.set('description', buffer.get_text(buffer.get_start_iter(),
-                                                                   buffer.get_end_iter(), True)),
-                           book)
-
-            description.set_buffer(buffer)
-
+        # The window needs to be shown first, so that the cover can be scaled to fit.
         window.show()
-        # The window needs to be shown before the cover so that it can be scaled to fit
-        image_path = book.get_cover()
 
-        if image_path:
-            cover.set_from_pixbuf(scale_cover(image_path, content_area.get_allocation()))
+        if book.get_cover():
+            cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
         else:
             cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
