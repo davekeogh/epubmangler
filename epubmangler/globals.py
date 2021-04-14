@@ -1,12 +1,10 @@
 """Globals used by epubmangler"""
 
 # Xpath queries for elements we will edit
-# TODO: Make sure everything is on here
 XPATHS = {
-    'cover'         :   ['./opf:metadata/opf:meta/[@name="cover"]'],
+    # http://idpf.org/epub/20/spec/OPF_2.0_final_spec.html
     'creator'       :   ['./opf:metadata/dc:creator[@opf:role="aut"]',
                          './opf:metadata/dc:creator'],
-    
     'title'         :   ['./opf:metadata/dc:title'],
     'description'   :   ['./opf:metadata/dc:description'],
     'subject'       :   ['./opf:metadata/dc:subject'],
@@ -14,6 +12,11 @@ XPATHS = {
     'language'      :   ['./opf:metadata/dc:language'],
     'rights'        :   ['./opf:metadata/dc:rights'],
     'contributor'   :   ['./opf:metadata/dc:contributor'],
+    'type'          :   ['./opf:metadata/dc:type'],
+    'format'        :   ['./opf:metadata/dc:format'],
+    'source'        :   ['./opf:metadata/dc:source'],
+    'relation'      :   ['./opf:metadata/dc:relation'],
+    'coverage'      :   ['./opf:metadata/dc:coverage'],
     
     'date'          :   ['./opf:metadata/dc:date',
                          './opf:metadata/dc:date/[@opf:event="publication"]',
@@ -29,7 +32,8 @@ XPATHS = {
     'uri'           :   ['./opf:metadata/dc:identifier/[@opf:scheme="uri"]'
                          './opf:metadata/dc:identifier/[@opf:scheme="URI"]'],
     
-    'meta'          :   ['./opf:metadata/opf:meta']
+    'cover'         :   ['./opf:metadata/opf:meta/[@name="cover"]'],
+    'meta'          :   ['./opf:metadata/opf:meta'] # Anything else
 }
 
 # These are all the XML namespaces that we should encounter
