@@ -7,6 +7,11 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-add</property>
   </object>
+  <object class="GtkImage" id="edit_image">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-edit</property>
+  </object>
   <object class="GtkPopover" id="popoverentry">
     <property name="can_focus">False</property>
     <child>
@@ -536,7 +541,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="tooltip_text" translatable="yes">Remove the selected subject from the list</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
                     <property name="image">add_image</property>
@@ -553,7 +557,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="tooltip_text" translatable="yes">Remove the selected subject from the list</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
                     <property name="image">remove_image</property>
@@ -562,6 +565,22 @@
                   </object>
                   <packing>
                     <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="details_edit_button">
+                    <property name="label" translatable="yes">Open in Text Editor</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="halign">end</property>
+                    <property name="valign">start</property>
+                    <property name="image">edit_image</property>
+                    <property name="relief">none</property>
+                    <property name="always_show_image">True</property>
+                  </object>
+                  <packing>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>

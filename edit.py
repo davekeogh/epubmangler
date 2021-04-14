@@ -5,7 +5,7 @@
 # - look into using libhandy widgets, they will be added to Gtk 4 with libadwaita
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
-import mimetypes, os, os.path, random, sys
+import mimetypes, os, os.path, random, subprocess, sys
 
 from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces
 
@@ -15,7 +15,19 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 
-def send_book(button: Gtk.Button, book: EPub, device_path: str, window: Gtk.Window) -> None:
+def add_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
+    ...
+
+
+def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
+    iter = view.get_selection().get_selected()[1]
+    
+    if iter:
+        book.remove(model.get_value(iter, 0), model.get_value(iter, 2))
+        model.remove(iter)
+
+
+def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
     file_name = os.path.basename(book.file)
     copy_to = os.path.join(device_path, file_name)
 
@@ -94,7 +106,7 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
     dialog.destroy()
 
 
-def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, popover: Gtk.Popover) -> None:
+def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry) -> None:
     date = calendar.get_date()
     entry.set_text(f'{date.year}-{date.month:02}-{date.day:02}')
 
@@ -110,11 +122,11 @@ def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: E
 
 
 def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
-    selection = view.get_selection().get_selected()[1]
+    iter = view.get_selection().get_selected()[1]
 
-    if selection:
-        model.remove(selection)
-        book.remove_subject(model.get_value(selection, 0))
+    if iter:
+        book.remove_subject(model.get_value(iter, 0))
+        model.remove(iter)
 
 
 if __name__ == '__main__':
@@ -151,9 +163,12 @@ if __name__ == '__main__':
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
     remove_button = builder.get_object('remove_button')
-    description = builder.get_object('description')  # Replaced by WebKit2.WebView
+    description = builder.get_object('description')
     details = builder.get_object('details')
     details_area = builder.get_object('details_area')
+    add_element_button = builder.get_object('details_add_button')
+    remove_element_button = builder.get_object('details_remove_button')
+    text_editor_button = builder.get_object('details_edit_button')
     infobar = builder.get_object('infobar')
 
     popover_cal = builder.get_object('popovercalendar')
@@ -168,12 +183,15 @@ if __name__ == '__main__':
     window.connect('destroy', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
-    calendar.connect('day-selected', edit_date, date_entry, popover_cal)
+    calendar.connect('day-selected', edit_date, date_entry)
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
+    add_element_button.connect('clicked', add_element, details_model, details, book)
+    remove_element_button.connect('clicked', remove_element, details_model, details, book)
+    text_editor_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
 
     if book:
         title_label.set_text(os.path.basename(book.file))
@@ -188,7 +206,7 @@ if __name__ == '__main__':
                     root = os.path.join(mount.get_root().get_path(), 'documents')
 
                     if os.path.exists(root):
-                        device_button.connect('clicked', send_book, book, root, window)
+                        device_button.connect('clicked', send_book, book, root)
                         device_button.set_label('Send to Kindle')
                         device_button.show()
 
