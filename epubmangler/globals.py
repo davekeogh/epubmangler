@@ -4,22 +4,21 @@
 # TODO: Make sure everything is on here
 XPATHS = {
     'cover'         :   ['./opf:metadata/opf:meta/[@name="cover"]'],
-
-    # The creator tag may have a "opf:file-as" attribute
     'creator'       :   ['./opf:metadata/dc:creator[@opf:role="aut"]',
                          './opf:metadata/dc:creator'],
-
+    
     'title'         :   ['./opf:metadata/dc:title'],
     'description'   :   ['./opf:metadata/dc:description'],
     'subject'       :   ['./opf:metadata/dc:subject'],
     'publisher'     :   ['./opf:metadata/dc:publisher'],
     'language'      :   ['./opf:metadata/dc:language'],
     'rights'        :   ['./opf:metadata/dc:rights'],
-
+    'contributor'   :   ['./opf:metadata/dc:contributor'],
+    
     'date'          :   ['./opf:metadata/dc:date',
                          './opf:metadata/dc:date/[@opf:event="publication"]',
                          './opf:metadata/dc:date/[@opf:event="modification"]'],
-
+    
     'id'            :   ['./opf:metadata/dc:identifier'],
     'isbn'          :   ['./opf:metadata/dc:identifier/[@opf:scheme="isbn"]',
                          './opf:metadata/dc:identifier/[@opf:scheme="ISBN"]'],
@@ -30,7 +29,6 @@ XPATHS = {
     'uri'           :   ['./opf:metadata/dc:identifier/[@opf:scheme="uri"]'
                          './opf:metadata/dc:identifier/[@opf:scheme="URI"]'],
     
-    # This is not useful for much
     'meta'          :   ['./opf:metadata/opf:meta']
 }
 
