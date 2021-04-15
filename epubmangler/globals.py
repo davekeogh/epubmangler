@@ -53,3 +53,6 @@ IMAGE_TYPES = ('image/jpeg', 'image/png', 'image/gif')
 
 # Characters that may cause file system errors if used in filenames
 ILLEGAL_CHARS = ('/', '\\', ':', '*', '?', '\"', '<', '>', '|')
+
+# time.strftime(TIME_FORMAT)
+TIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'

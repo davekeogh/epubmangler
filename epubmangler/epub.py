@@ -27,7 +27,7 @@ from types import TracebackType
 from typing import Dict, List, Optional, Type
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .globals import XPATHS, ILLEGAL_CHARS, NAMESPACES, IMAGE_TYPES
+from .globals import XPATHS, ILLEGAL_CHARS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
 from .functions import file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces
 
 
@@ -343,7 +343,7 @@ class EPub:
         if os.path.exists(path) and not overwrite:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
-        self.add('date', time.strftime('%F'), {'event' : 'modified'})
+        self.add('date', time.strftime(TIME_FORMAT), {'event' : 'modified'})
 
         name = os.path.join(self.tempdir.name, find_opf_files(self.tempdir.name)[0])
         self.etree.write(name, xml_declaration=True, encoding='utf-8', method='xml')
