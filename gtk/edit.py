@@ -4,7 +4,7 @@
 # TODO:
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
-import mimetypes, os, os.path, random, subprocess, sys
+import mimetypes, os, os.path, random, subprocess, sys, time
 
 from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces, VERSION
 
@@ -15,9 +15,9 @@ from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 # TODO: Delete
 # This stuff needs to get set during install
-BUILDER = '/home/david/Projects/epubmangler/gtk/widgets.xml'
-FOLDER = '/home/david/Projects/epubmangler/books/calibre'
-ICON = '/home/david/Projects/epubmangler/gtk/icon.svg'
+RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
+BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
+ICON = os.path.join(RESOURCE_DIR, 'icon.svg')
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -42,8 +42,8 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
         dialog.destroy()
 
 
-def add_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
-    ...
+def add_element(_b: Gtk.Button, model: Gtk.ListStore, book: EPub, entry: Gtk.Entry) -> None:
+    entry.grab_focus()
 
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
@@ -158,6 +158,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
+            FOLDER = '/home/david/Projects/epubmangler/books/calibre'
             books = os.listdir(FOLDER)
             book = EPub(os.path.join(FOLDER, random.choice(books)))
     else:
@@ -189,11 +190,13 @@ if __name__ == '__main__':
     add_element_button = builder.get_object('details_add_button')
     remove_element_button = builder.get_object('details_remove_button')
     edit_button = builder.get_object('details_edit_button')
+    fm_button = builder.get_object('folder_button')
     infobar = builder.get_object('infobar')
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
     about_button = builder.get_object('about_button')
     quit_button = builder.get_object('quit_button')
+    tag_entry = builder.get_object('tag_entry')
 
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
@@ -201,19 +204,21 @@ if __name__ == '__main__':
 
     # Signals
     window.connect('destroy', Gtk.main_quit)
+    about_button.connect('clicked', about, window)
+    quit_button.connect('clicked', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
     calendar.connect('day-selected', edit_date, date_entry)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
-    add_element_button.connect('clicked', add_element, details_model, details, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
+    add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
     edit_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
-    about_button.connect('clicked', about, window)
-    quit_button.connect('clicked', Gtk.main_quit)
+    fm_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.tempdir.name]),
+                      book)
 
     if book:
         title_label.set_text(os.path.basename(book.file))
@@ -233,7 +238,7 @@ if __name__ == '__main__':
                         device_button.show()
 
         # Populate fields
-        for field in ('title', 'creator', 'date', 'publisher', 'language'):
+        for field in ('title', 'creator', 'publisher', 'language'):
             try:
                 builder.get_object(field).set_text(book.get(field).text)
             except NameError:
@@ -243,6 +248,26 @@ if __name__ == '__main__':
                                               lambda entry, book, field:
                                               book.set(field, entry.get_text()),
                                               book, field)
+        
+        # Date and calendar
+        try:
+            date = book.get('date').text
+            builder.get_object('date').set_text(date)
+        except NameError:
+            date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        
+        builder.get_object('date').connect('changed',
+                                            lambda entry, book:
+                                            book.set('date', entry.get_text()),
+                                            book)
+        
+        try:
+            my_time = time.strptime(date, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError:
+            my_time = time.strptime(date, '%Y-%m-%d')
+        
+        calendar.select_month(my_time.tm_mon, my_time.tm_year)
+        calendar.select_day(my_time.tm_mday)
 
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
@@ -279,7 +304,7 @@ if __name__ == '__main__':
         cell.set_property('editable', True)
         cell.connect('edited', cell_edited, details_model, 0)
 
-        column = Gtk.TreeViewColumn('Element', cell, text=0)
+        column = Gtk.TreeViewColumn('Tag', cell, text=0)
         column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
         details.append_column(column)
 
