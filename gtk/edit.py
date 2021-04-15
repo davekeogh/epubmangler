@@ -11,13 +11,15 @@ from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_names
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 # TODO: Delete
 # This stuff needs to get set during install
 RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
 BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
 ICON = os.path.join(RESOURCE_DIR, 'icon.svg')
+XDG_OPEN = GLib.find_program_in_path('xdg-open')
+PLATFORM = sys.platform
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -216,9 +218,18 @@ if __name__ == '__main__':
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
-    edit_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.opf]), book)
-    fm_button.connect('clicked', lambda _b, book: subprocess.run(['xdg-open', book.tempdir.name]),
-                      book)
+
+    if XDG_OPEN:
+        # We have exo-open which means we are probably on linux or bsd
+        edit_button.connect('clicked', lambda _b, book:
+                            subprocess.run([XDG_OPEN, book.opf]), book)
+        fm_button.connect('clicked', lambda _b, book:
+                          subprocess.run([XDG_OPEN, book.tempdir.name]), book)
+    else:
+        # TODO: How to launch stuff on other platforms?
+        edit_button.hide()
+        fm_button.hide()
+            
 
     if book:
         title_label.set_text(os.path.basename(book.file))
@@ -252,23 +263,31 @@ if __name__ == '__main__':
         # Date and calendar
         try:
             date = book.get('date').text
-            builder.get_object('date').set_text(date)
         except NameError:
             date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        
+        my_time = None
+        
+        for format_string in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%Y'):
+            try:
+                my_time = time.strptime(date, format_string)
+                break
+            except ValueError:
+                pass
+        
+        if my_time:
+            month = int(my_time.tm_mon) - 1 # GtkCalendar uses 0-11 for month
+            calendar.select_month(month, my_time.tm_year)
+            calendar.select_day(my_time.tm_mday)
+        
+        builder.get_object('date').set_text(date)
         
         builder.get_object('date').connect('changed',
                                             lambda entry, book:
                                             book.set('date', entry.get_text()),
                                             book)
-        
-        try:
-            my_time = time.strptime(date, '%Y-%m-%dT%H:%M:%S%z')
-        except ValueError:
-            my_time = time.strptime(date, '%Y-%m-%d')
-        
-        calendar.select_month(my_time.tm_mon, my_time.tm_year)
-        calendar.select_day(my_time.tm_mday)
 
+        # Subject tags
         for subject in book.get_all('subject'):
             list_model.append([subject.text])
 
