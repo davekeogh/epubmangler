@@ -5,6 +5,7 @@ import os, os.path
 
 from epubmangler import EPub, is_epub
 
+import jinja2
 from flask import Flask, redirect, request, send_from_directory, url_for
 
 from werkzeug.utils import secure_filename

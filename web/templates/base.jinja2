@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="static/style.css" />
+    <title>EPUB MANGLER {% block title %}{% endblock %}</title>
+    {% endblock %}
+</head>
+<body>
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer">
+        {% block footer %}
+        &copy; Copyright 2021 by David Keogh</a>.
+        {% endblock %}
+    </div>
+</body>
+</html>
