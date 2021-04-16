@@ -1,6 +1,7 @@
 """Globals used by epubmangler"""
 
 VERSION = '0.1.0'
+WEBSITE = 'https://github.com/davekeogh/epubmangler'
 
 # Xpath queries for elements we will edit
 XPATHS = {

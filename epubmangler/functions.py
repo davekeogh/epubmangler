@@ -1,4 +1,4 @@
-"""Useful functions used by epubmangler"""
+"""Functions used by epubmangler"""
 
 from __future__ import annotations
 

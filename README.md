@@ -1,8 +1,8 @@
 # epubmangler
 
-This module provides tools to modify the metadata of .epub format ebooks.
+Tools to modify the metadata of EPUB files
 
-Documentation TBA. See `example.py` and `rename_epubs.py` for now.
+Documentation TBA. See `example/rename_epubs.py` and `gtk/edit.py` for now.
 
 Requires: Python 3.7
 
