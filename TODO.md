@@ -2,7 +2,7 @@
 
 - [x] tests
 - [ ] interactive terminal editor
-- [ ] gtk editor
+- [x] gtk editor
 - [ ] commandline non-interactive
 - [ ] docs
 - [ ] webpage

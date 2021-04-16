@@ -6,7 +6,13 @@
 
 import mimetypes, os, os.path, random, subprocess, sys, time
 
-from epubmangler import EPub, IMAGE_TYPES, is_epub, strip_namespace, strip_namespaces, VERSION
+import xml.etree.ElementTree as ET
+
+from epubmangler import (
+    EPub,
+    IMAGE_TYPES, NAMESPACES, VERSION, WEBSITE,
+    is_epub, strip_namespace, strip_namespaces
+)
 
 import gi
 gi.require_version('Gdk', '3.0')
@@ -37,15 +43,33 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
     dialog.set_copyright('Copyright © 2020-2021 David Keogh')
     dialog.set_license_type(Gtk.License.GPL_3_0)
     dialog.set_authors(['David Keogh <davidtkeogh@gmail.com>'])
-    dialog.set_website('https://github.com/davekeogh/epubmangler')
+    dialog.set_website(WEBSITE)
     dialog.set_transient_for(window)
 
     if dialog.run() == Gtk.ResponseType.DELETE_EVENT:
         dialog.destroy()
 
 
-def add_element(_b: Gtk.Button, model: Gtk.ListStore, book: EPub, entry: Gtk.Entry) -> None:
-    entry.grab_focus()
+def popover_add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
+                tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
+    # Use Elementtree to create the new tag, this allows us to create ones not in the specs.
+    element = ET.Element(tag_entry.get_text())
+    element.text = text_entry.get_text()
+    element.attrib = attrib_entry.get_text()
+    book.etree.find('./opf:metadata', NAMESPACES).append(element)
+    model.append([element.tag, element.text, element.attrib])
+    tag_entry.set_text('')
+    text_entry.set_text('')
+    attrib_entry.set_text('')
+    popover.popdown()
+
+
+def popover_clear(_b: Gtk.Button, popover: Gtk.Popover,
+                  tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
+    tag_entry.set_text('')
+    text_entry.set_text('')
+    attrib_entry.set_text('')
+    popover.popdown()
 
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
@@ -79,6 +103,10 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
 def cell_edited(_c: Gtk.CellRendererText,
                 path: str, new_text: str, model: Gtk.ListStore, col: int) -> None:
     model[path][col] = new_text
+
+
+def reload_book(_b: Gtk.Button, book: EPub, model: Gtk.ListStore) -> None:
+    ...
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -129,9 +157,11 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
     dialog.destroy()
 
 
-def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry) -> None:
+def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, icon: Gtk.Image) -> None:
     date = calendar.get_date()
-    entry.set_text(f'{date.year}-{date.month:02}-{date.day:02}')
+    month = date.month + 1
+    entry.set_text(f'{date.year}-{month:02}-{date.day:02}')
+    icon.set_from_icon_name(f'calendar-{date.day:02}', Gtk.IconSize.BUTTON)
 
 
 def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
@@ -186,6 +216,7 @@ if __name__ == '__main__':
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
     remove_button = builder.get_object('remove_button')
+    calendar_image = builder.get_object('calendar_image')
     description = builder.get_object('description')
     details = builder.get_object('details')
     details_area = builder.get_object('details_area')
@@ -193,12 +224,19 @@ if __name__ == '__main__':
     remove_element_button = builder.get_object('details_remove_button')
     edit_button = builder.get_object('details_edit_button')
     fm_button = builder.get_object('folder_button')
+    reset_button = builder.get_object('reset_button')
     infobar = builder.get_object('infobar')
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
+    help_button = builder.get_object('help_button')
     about_button = builder.get_object('about_button')
     quit_button = builder.get_object('quit_button')
     tag_entry = builder.get_object('tag_entry')
+    text_entry = builder.get_object('text_entry')
+    attrib_entry = builder.get_object('attrib_entry')
+    popover_add = builder.get_object('popoveradd')
+    popover_add_button = builder.get_object('popover_add_button')
+    popover_clear_button = builder.get_object('popover_clear_button')
 
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
@@ -210,23 +248,30 @@ if __name__ == '__main__':
     quit_button.connect('clicked', Gtk.main_quit)
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
-    calendar.connect('day-selected', edit_date, date_entry)
+    calendar.connect('day-selected', edit_date, date_entry, calendar_image)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
     cover_button.connect('clicked', set_cover, cover, content_area, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
+    reset_button.connect('clicked', reload_book, book, details_model)
+    popover_add_button.connect('clicked', popover_add_element, popover_add, details_model, book, tag_entry, text_entry, attrib_entry)
+    popover_clear_button.connect('clicked', popover_clear, popover_add, tag_entry, text_entry, attrib_entry)
+
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
 
     if XDG_OPEN:
-        # We have exo-open which means we are probably on linux or bsd
+        # We have exo-open which means we are probably on linux or similar
+        help_button.connect('clicked', lambda _b:
+                            subprocess.run([XDG_OPEN, f'{WEBSITE}/blob/main/gtk/README.md']))
         edit_button.connect('clicked', lambda _b, book:
                             subprocess.run([XDG_OPEN, book.opf]), book)
         fm_button.connect('clicked', lambda _b, book:
                           subprocess.run([XDG_OPEN, book.tempdir.name]), book)
     else:
         # TODO: How to launch stuff on other platforms?
+        help_button.hide()
         edit_button.hide()
         fm_button.hide()
             
