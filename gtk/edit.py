@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, NAMESPACES, VERSION, WEBSITE,
+    IMAGE_TYPES, LANGUAGES, NAMESPACES, VERSION, WEBSITE,
     is_epub, strip_namespace, strip_namespaces
 )
 
@@ -50,7 +50,7 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
         dialog.destroy()
 
 
-def popover_add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
+def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
     # Use Elementtree to create the new tag, this allows us to create ones not in the specs.
     element = ET.Element(tag_entry.get_text())
@@ -159,9 +159,13 @@ def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPu
 
 def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, icon: Gtk.Image) -> None:
     date = calendar.get_date()
-    month = date.month + 1
+    month = date.month + 1  # GtkCalendar uses 0-11 for month
     entry.set_text(f'{date.year}-{month:02}-{date.day:02}')
-    icon.set_from_icon_name(f'calendar-{date.day:02}', Gtk.IconSize.BUTTON)
+
+    icon_name = f'calendar-{date.day:02}'
+
+    if Gtk.IconTheme.get_default().has_icon(icon_name):
+        icon.set_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
 
 
 def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
@@ -215,6 +219,7 @@ if __name__ == '__main__':
     date_entry = builder.get_object('date')
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
+    language_entry = builder.get_object('language')
     remove_button = builder.get_object('remove_button')
     calendar_image = builder.get_object('calendar_image')
     description = builder.get_object('description')
@@ -240,6 +245,8 @@ if __name__ == '__main__':
 
     list_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
+    completion_model = Gtk.ListStore(str)
+
     volume_monitor = Gio.VolumeMonitor.get()
 
     # Signals
@@ -254,8 +261,10 @@ if __name__ == '__main__':
     cover_button.connect('clicked', set_cover, cover, content_area, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     reset_button.connect('clicked', reload_book, book, details_model)
-    popover_add_button.connect('clicked', popover_add_element, popover_add, details_model, book, tag_entry, text_entry, attrib_entry)
-    popover_clear_button.connect('clicked', popover_clear, popover_add, tag_entry, text_entry, attrib_entry)
+    popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
+                               tag_entry, text_entry, attrib_entry)
+    popover_clear_button.connect('clicked', popover_clear, popover_add, tag_entry, text_entry,
+                                 attrib_entry)
 
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
@@ -274,11 +283,19 @@ if __name__ == '__main__':
         help_button.hide()
         edit_button.hide()
         fm_button.hide()
-            
 
     if book:
         title_label.set_text(os.path.basename(book.file))
         window.set_title(os.path.basename(book.file))
+
+        # Complete language codes from list of ISO 639-2 codes
+        for code in LANGUAGES:
+            completion_model.append([code])
+
+        completion = Gtk.EntryCompletion()
+        completion.set_model(completion_model)
+        completion.set_text_column(0)
+        language_entry.set_completion(completion)
 
         # Look for connected AND mounted ebook readers
         for drive in volume_monitor.get_connected_drives():
@@ -304,33 +321,33 @@ if __name__ == '__main__':
                                               lambda entry, book, field:
                                               book.set(field, entry.get_text()),
                                               book, field)
-        
+
         # Date and calendar
         try:
             date = book.get('date').text
         except NameError:
             date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
-        
+
         my_time = None
-        
+
         for format_string in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%Y'):
             try:
                 my_time = time.strptime(date, format_string)
                 break
             except ValueError:
                 pass
-        
+
         if my_time:
-            month = int(my_time.tm_mon) - 1 # GtkCalendar uses 0-11 for month
+            # GtkCalendar uses 0-11 for month
+            month = int(my_time.tm_mon) - 1
             calendar.select_month(month, my_time.tm_year)
             calendar.select_day(my_time.tm_mday)
-        
-        builder.get_object('date').set_text(date)
-        
-        builder.get_object('date').connect('changed',
-                                            lambda entry, book:
-                                            book.set('date', entry.get_text()),
-                                            book)
+
+        builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
+
+        builder.get_object('date').connect('changed', lambda entry, book:
+                                           book.set('date', entry.get_text()),
+                                           book)
 
         # Subject tags
         for subject in book.get_all('subject'):
@@ -349,8 +366,7 @@ if __name__ == '__main__':
             buffer = Gtk.TextBuffer()
             buffer.set_text(description_text)
 
-            buffer.connect('changed',
-                           lambda buffer, book:
+            buffer.connect('changed', lambda buffer, book:
                            book.set('description', buffer.get_text(buffer.get_start_iter(),
                                                                    buffer.get_end_iter(), True)),
                            book)
@@ -358,7 +374,7 @@ if __name__ == '__main__':
             description.set_buffer(buffer)
 
         # Details view
-        for meta in book.metadata():
+        for meta in book.metadata:
             if strip_namespace(meta.tag) != 'description':
                 details_model.append([strip_namespace(meta.tag), meta.text,
                                      str(strip_namespaces(meta.attrib))])

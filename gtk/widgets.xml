@@ -2,26 +2,6 @@
 <!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <object class="GtkImage" id="edit_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-edit</property>
-  </object>
-  <object class="GtkImage" id="folder_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-open</property>
-  </object>
-  <object class="GtkImage" id="remove_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-remove</property>
-  </object>
-  <object class="GtkImage" id="reset_image">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-refresh</property>
-  </object>
   <object class="GtkPopover" id="popoveradd">
     <property name="can_focus">False</property>
     <property name="relative_to">details_add_button</property>
@@ -332,7 +312,7 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="icon_name">format-justify-fill-symbolic</property>
+                    <property name="icon_name">open-menu-symbolic</property>
                     <child internal-child="accessible">
                       <object class="AtkObject">
                         <property name="AtkObject::accessible-name" translatable="yes">Main menu</property>
@@ -580,7 +560,7 @@
                       <object class="GtkImage">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-add</property>
+                        <property name="icon_name">add-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -603,7 +583,7 @@
                       <object class="GtkImage">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-remove</property>
+                        <property name="icon_name">remove-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -783,38 +763,13 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="relief">none</property>
                     <property name="popover">popoveradd</property>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="stock">gtk-add</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Add Element</property>
-                            <style>
-                              <class name="button"/>
-                            </style>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
+                        <property name="label" translatable="yes">Add Element</property>
                       </object>
                     </child>
                   </object>
@@ -830,9 +785,7 @@
                     <property name="receives_default">True</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
-                    <property name="image">remove_image</property>
                     <property name="relief">none</property>
-                    <property name="always_show_image">True</property>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -846,9 +799,7 @@
                     <property name="receives_default">True</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
-                    <property name="image">edit_image</property>
                     <property name="relief">none</property>
-                    <property name="always_show_image">True</property>
                   </object>
                   <packing>
                     <property name="position">2</property>
@@ -862,9 +813,7 @@
                     <property name="receives_default">True</property>
                     <property name="halign">end</property>
                     <property name="valign">start</property>
-                    <property name="image">folder_image</property>
                     <property name="relief">none</property>
-                    <property name="always_show_image">True</property>
                   </object>
                   <packing>
                     <property name="position">3</property>
@@ -876,8 +825,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="image">reset_image</property>
-                    <property name="always_show_image">True</property>
+                    <property name="relief">none</property>
                   </object>
                   <packing>
                     <property name="position">4</property>
