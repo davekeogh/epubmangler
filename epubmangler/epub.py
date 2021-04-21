@@ -35,8 +35,9 @@ class EPub:
     """A Python object representing an epub ebook's editable metadata."""
 
     etree: ET.ElementTree
-    opf: str
     file: str
+    metadata: List[ET.Element]
+    opf: str
     tempdir: TempDir
     version: str
 
@@ -59,6 +60,7 @@ class EPub:
             self.opf = find_opf_files(self.tempdir.name)[0]
             self.etree = ET.parse(self.opf)
             self.version = self.etree.getroot().attrib['version']
+            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         except IndexError:
             raise ValueError(f"{path} does not appear to be a valid .epub file.")
         except ET.ParseError:
@@ -165,7 +167,7 @@ class EPub:
         """Returns a list of all the matching elements. There are often multiple date
         and subject tags for instance."""
 
-        elements = []
+        elements: List[ET.Element]
 
         try:
             xpaths = XPATHS[name]
@@ -173,12 +175,11 @@ class EPub:
             raise NameError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
-            for element in self.etree.getroot().findall(xpath, NAMESPACES):
-                if element is not None:
-                    elements.append(element)
+            # ET.Element evaluates as False so we need test that element is not None
+            elements = map(lambda e: e if e is not None else False,
+                           self.etree.getroot().findall(xpath, NAMESPACES))
 
         return elements
-
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
@@ -223,12 +224,6 @@ class EPub:
         
         # No cover image 
         return None
-
-
-    def metadata(self) -> List[ET.Element]:
-        """Returns a list of every element found in the metadata section."""
-
-        return self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
 
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:

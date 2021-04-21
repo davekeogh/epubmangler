@@ -17,7 +17,6 @@ with EPub('Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
     # Get information about a book
     language = book.get('language')
     subjects = book.get_all('subject')
-    elements = book.metadata()
 
     # Modify existing elements
     book.set('title', 'Frankenstein 2')

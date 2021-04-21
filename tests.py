@@ -117,10 +117,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
     def test_init(self):
         self.assertRaises(ValueError, epubmangler.EPub, 'notafile')
         # TODO: Need some bad epub files to test here
-    
-    def test_metadata(self):
-        for meta in self.book.metadata():
-            self.assertIsInstance(meta, ET.Element)
+
 
 if __name__ == '__main__':
     print(os.path.basename(BOOK))
