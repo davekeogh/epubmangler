@@ -16,18 +16,18 @@ from .globals import NAMESPACES
 def file_as(name: str) -> str:
     """Returns a human's name with the surname first, or tries to at least.
     This may perform poorly with some names.
-    
+
     `file_as('Mary Wollstonecraft Shelley')` returns `'Shelley, Mary Wollstonecraft'`"""
-    
+
     parts = name.split()
 
     if not parts:
         return name
 
     name = parts[0]
-    
+
     if len(parts) == 1:
-        return parts[0]   
+        return parts[0]
 
     for part in range(1, len(parts) - 1):
         name = f'{name} {parts[part]}'

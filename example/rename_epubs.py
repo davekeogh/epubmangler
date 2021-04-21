@@ -6,7 +6,7 @@ from epubmangler import EPub, is_epub, ILLEGAL_CHARS
 
 def rename_file(path: str) -> None:
     book = EPub(full_path)
-            
+
     try:
         title = book.get('title').text
         author = book.get('creator').text
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         DIR = sys.argv[1]
     else:
         DIR = os.getcwd()
-    
+
     FILES = 0
     TIME = 0
 

@@ -116,7 +116,7 @@ class EPub:
         element.text = text
         if attrib:
             element.attrib = attrib
-        
+
         if name == 'creator':
             if attrib:
                 element.attrib['opf:file-as'] = file_as(text)
@@ -183,7 +183,7 @@ class EPub:
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
-        
+
         `./opf:manifest/opf:item/[@properties=\"cover-image\"]` contains the local path to the
         image in EPub version 3 files.
 
@@ -199,7 +199,7 @@ class EPub:
             name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@properties=\"cover-image\"]",
                                              NAMESPACES).attrib['href']
             based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
-            
+
             return os.path.join(based, name)
 
         except AttributeError:
@@ -221,8 +221,8 @@ class EPub:
                     return os.path.join(based, name)
                 except AttributeError:
                     pass
-        
-        # No cover image 
+
+        # No cover image
         return None
 
 
@@ -264,13 +264,13 @@ class EPub:
         else:
             elements = self.get_all(name)
             found = False
-            
+
             for element in elements:
                 if strip_namespaces(attrib) == strip_namespaces(element.attrib):
                     element.text = text
                     found = True
                     break
-            
+
             if not found:
                 element = elements[0]
                 element.text = text
@@ -351,7 +351,7 @@ class EPub:
 
         with open(name, 'r') as f:
             text = f.read()
-        
+
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
         text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')

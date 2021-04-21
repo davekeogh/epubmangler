@@ -34,7 +34,7 @@ def edit(filename):
         book = EPub(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         author = book.get('creator')
         title = book.get('title')
-        
+
         return f'''
         <!doctype html>
         <title>Editing: {filename}</title>
@@ -46,7 +46,7 @@ def edit(filename):
             <input type=submit value=Save>
         </form>
         '''
-    
+
     except ValueError:
         return 'not an epub'
 
@@ -58,9 +58,9 @@ def save():
         book.set('title', request.form['title'])
         book.set('creator', request.form['author'])
         book.save(os.path.join(app.config['UPLOAD_FOLDER'], filename), overwrite=True)
-        
+
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
+
     else:
         return redirect(url_for('index'))
 
@@ -77,10 +77,10 @@ def upload():
             ext = os.path.splitext(file.filename)[1]
         except IndexError:
             return 'not an epub'
-        
+
         if ext != '.epub':
             return 'not an epub'
-        
+
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
