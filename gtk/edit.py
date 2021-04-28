@@ -191,9 +191,9 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
-            FOLDER = '/home/david/Projects/epubmangler/books/calibre'
-            books = os.listdir(FOLDER)
-            book = EPub(os.path.join(FOLDER, random.choice(books)))
+            folder = '/home/david/Projects/epubmangler/books/calibre'
+            books = os.listdir(folder)
+            book = EPub(os.path.join(folder, random.choice(books)))
     else:
         print(f'Usage: {sys.argv[0]} [FILE]')
         sys.exit()
@@ -207,7 +207,6 @@ if __name__ == '__main__':
     device_button = builder.get_object('device_button')
     save_button = builder.get_object('save_button')
     details_button = builder.get_object('details_button')
-    open_button = builder.get_object('open_button')
     menu_button = builder.get_object('menu_button')
     content_area = builder.get_object('box')
     main_area = builder.get_object('main')
@@ -329,8 +328,7 @@ if __name__ == '__main__':
 
     if my_time:
         # GtkCalendar uses 0-11 for month
-        month = int(my_time.tm_mon) - 1
-        calendar.select_month(month, my_time.tm_year)
+        calendar.select_month(int(my_time.tm_mon) - 1, my_time.tm_year)
         calendar.select_day(my_time.tm_mday)
 
     builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
