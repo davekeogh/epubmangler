@@ -4,7 +4,7 @@
 # TODO:
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
-import mimetypes, os, os.path, random, subprocess, sys, time
+import mimetypes, os, os.path, random, sys, time
 
 import xml.etree.ElementTree as ET
 
@@ -19,13 +19,10 @@ gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
-# TODO: Delete
-# This stuff needs to get set during install
+# TODO: This needs to get set during install
 RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
 BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
 ICON = os.path.join(RESOURCE_DIR, 'icon.svg')
-XDG_OPEN = GLib.find_program_in_path('xdg-open')
-PLATFORM = sys.platform
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -198,7 +195,8 @@ if __name__ == '__main__':
             books = os.listdir(FOLDER)
             book = EPub(os.path.join(FOLDER, random.choice(books)))
     else:
-        book = None
+        print(f'Usage: {sys.argv[0]} [FILE]')
+        sys.exit()
 
     builder = Gtk.Builder()
     builder.add_from_file(BUILDER)
@@ -270,155 +268,138 @@ if __name__ == '__main__':
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
 
-    if XDG_OPEN:
-        # We have exo-open which means we are probably on linux or similar
-        help_button.connect('clicked', lambda _b:
-                            subprocess.run([XDG_OPEN, f'{WEBSITE}/blob/main/gtk/README.md']))
-        edit_button.connect('clicked', lambda _b, book:
-                            subprocess.run([XDG_OPEN, book.opf]), book)
-        fm_button.connect('clicked', lambda _b, book:
-                          subprocess.run([XDG_OPEN, book.tempdir.name]), book)
-    else:
-        # TODO: How to launch stuff on other platforms?
-        help_button.hide()
-        edit_button.hide()
-        fm_button.hide()
+    help_button.connect('clicked', lambda _b:
+                        Gtk.show_uri_on_window(window, f'{WEBSITE}/blob/main/gtk/README.md', Gdk.CURRENT_TIME))
+    edit_button.connect('clicked', lambda _b:
+                        Gtk.show_uri_on_window(window, f'file://{book.opf}', Gdk.CURRENT_TIME))
+    fm_button.connect('clicked', lambda _b:
+                      Gtk.show_uri_on_window(window, f'file://{book.tempdir.name}', Gdk.CURRENT_TIME))
 
-    if book:
-        title_label.set_text(os.path.basename(book.file))
-        window.set_title(os.path.basename(book.file))
+    title_label.set_text(os.path.basename(book.file))
+    window.set_title(os.path.basename(book.file))
 
-        # Complete language codes from list of ISO 639-2 codes
-        for code in LANGUAGES:
-            completion_model.append([code])
+    # Complete language codes from list of ISO 639-2 codes
+    for code in LANGUAGES:
+        completion_model.append([code])
 
-        completion = Gtk.EntryCompletion()
-        completion.set_model(completion_model)
-        completion.set_text_column(0)
-        language_entry.set_completion(completion)
+    completion = Gtk.EntryCompletion()
+    completion.set_model(completion_model)
+    completion.set_text_column(0)
+    language_entry.set_completion(completion)
 
-        # Look for connected AND mounted ebook readers
-        for drive in volume_monitor.get_connected_drives():
-            if drive.get_name() == 'Kindle Internal Storage':
-                mount = drive.get_volumes()[0].get_mount()
+    # Look for connected AND mounted ebook readers
+    for drive in volume_monitor.get_connected_drives():
+        if drive.get_name() == 'Kindle Internal Storage':
+            mount = drive.get_volumes()[0].get_mount()
 
-                if mount:
-                    root = os.path.join(mount.get_root().get_path(), 'documents')
+            if mount:
+                root = os.path.join(mount.get_root().get_path(), 'documents')
 
-                    if os.path.exists(root):
-                        device_button.connect('clicked', send_book, book, root)
-                        device_button.set_label('Send to Kindle')
-                        device_button.show()
+                if os.path.exists(root):
+                    device_button.connect('clicked', send_book, book, root)
+                    device_button.set_label('Send to Kindle')
+                    device_button.show()
 
-        # Populate fields
-        for field in ('title', 'creator', 'publisher', 'language'):
-            try:
-                builder.get_object(field).set_text(book.get(field).text)
-            except NameError:
-                pass
-
-            builder.get_object(field).connect('changed',
-                                              lambda entry, book, field:
-                                              book.set(field, entry.get_text()),
-                                              book, field)
-
-        # Date and calendar
+    # Populate fields
+    for field in ('title', 'creator', 'publisher', 'language'):
         try:
-            date = book.get('date').text
+            builder.get_object(field).set_text(book.get(field).text)
         except NameError:
-            date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+            pass
 
-        my_time = None
+        builder.get_object(field).connect('changed',
+                                            lambda entry, book, field:
+                                            book.set(field, entry.get_text()),
+                                            book, field)
 
-        for format_string in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%Y'):
-            try:
-                my_time = time.strptime(date, format_string)
-                break
-            except ValueError:
-                pass
+    # Date and calendar
+    try:
+        date = book.get('date').text
+    except NameError:
+        date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
 
-        if my_time:
-            # GtkCalendar uses 0-11 for month
-            month = int(my_time.tm_mon) - 1
-            calendar.select_month(month, my_time.tm_year)
-            calendar.select_day(my_time.tm_mday)
+    my_time = None
 
-        builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
-
-        builder.get_object('date').connect('changed', lambda entry, book:
-                                           book.set('date', entry.get_text()),
-                                           book)
-
-        # Subject tags
-        for subject in book.get_all('subject'):
-            list_model.append([subject.text])
-
-        subject_view.set_model(list_model)
-        subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
-
-        # Description
+    for format_string in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%Y'):
         try:
-            description_text = book.get('description').text
-        except NameError:
-            description_text = None
+            my_time = time.strptime(date, format_string)
+            break
+        except ValueError:
+            pass
 
-        if description_text:
-            buffer = Gtk.TextBuffer()
-            buffer.set_text(description_text)
+    if my_time:
+        # GtkCalendar uses 0-11 for month
+        month = int(my_time.tm_mon) - 1
+        calendar.select_month(month, my_time.tm_year)
+        calendar.select_day(my_time.tm_mday)
 
-            buffer.connect('changed', lambda buffer, book:
-                           book.set('description', buffer.get_text(buffer.get_start_iter(),
-                                                                   buffer.get_end_iter(), True)),
-                           book)
+    builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
 
-            description.set_buffer(buffer)
+    builder.get_object('date').connect('changed', lambda entry, book:
+                                        book.set('date', entry.get_text()),
+                                        book)
 
-        # Details view
-        for meta in book.metadata:
-            if strip_namespace(meta.tag) != 'description':
-                details_model.append([strip_namespace(meta.tag), meta.text,
-                                     str(strip_namespaces(meta.attrib))])
-        details.set_model(details_model)
+    # Subject tags
+    for subject in book.get_all('subject'):
+        list_model.append([subject.text])
 
-        cell = Gtk.CellRendererText()
-        cell.set_property('editable', True)
-        cell.connect('edited', cell_edited, details_model, 0)
+    subject_view.set_model(list_model)
+    subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
-        column = Gtk.TreeViewColumn('Tag', cell, text=0)
-        column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-        details.append_column(column)
+    # Description
+    try:
+        description_text = book.get('description').text
+    except NameError:
+        description_text = None
 
-        cell = Gtk.CellRendererText()
-        cell.set_property('editable', True)
-        cell.connect('edited', cell_edited, details_model, 1)
+    if description_text:
+        buffer = Gtk.TextBuffer()
+        buffer.set_text(description_text)
 
-        column = Gtk.TreeViewColumn('Text', cell, text=1)
-        column.set_min_width(details.get_allocation().width * 0.6)
-        column.set_expand(True)
-        details.append_column(column)
+        buffer.connect('changed', lambda buffer, book:
+                        book.set('description', buffer.get_text(buffer.get_start_iter(),
+                                                                buffer.get_end_iter(), True)),
+                        book)
 
-        cell = Gtk.CellRendererText()
-        cell.set_property('editable', True)
-        cell.connect('edited', cell_edited, details_model, 2)
+        description.set_buffer(buffer)
 
-        column = Gtk.TreeViewColumn('Attributes', cell, text=2)
-        column.set_expand(True)
-        details.append_column(column)
+    # Details view
+    for meta in book.metadata:
+        if strip_namespace(meta.tag) != 'description':
+            details_model.append([strip_namespace(meta.tag), meta.text,
+                                    str(strip_namespaces(meta.attrib))])
+    details.set_model(details_model)
 
-        # The window needs to be shown first, so that the cover can be scaled to fit.
-        window.show()
+    cell = Gtk.CellRendererText()
+    cell.set_property('editable', True)
+    cell.connect('edited', cell_edited, details_model, 0)
 
-        if book.get_cover():
-            cover.set_from_pixbuf(scale_cover(book.get_cover(), content_area.get_allocation()))
-        else:
-            cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
+    column = Gtk.TreeViewColumn('Tag', cell, text=0)
+    column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+    details.append_column(column)
 
+    cell = Gtk.CellRendererText()
+    cell.set_property('editable', True)
+    cell.connect('edited', cell_edited, details_model, 1)
+
+    column = Gtk.TreeViewColumn('Text', cell, text=1)
+    column.set_min_width(details.get_allocation().width * 0.6)
+    column.set_expand(True)
+    details.append_column(column)
+
+    cell = Gtk.CellRendererText()
+    cell.set_property('editable', True)
+    cell.connect('edited', cell_edited, details_model, 2)
+
+    column = Gtk.TreeViewColumn('Attributes', cell, text=2)
+    column.set_expand(True)
+    details.append_column(column)
+
+    if book.get_cover():
+        content_area.connect('size-allocate', lambda _area, allocation:
+                             cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
     else:
-        content_area.hide()
-        details_button.hide()
-        save_button.hide()
-        device_button.hide()
-        open_button.show()
-        window.show()
+        cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
+    window.show()
     Gtk.main()
