@@ -26,8 +26,8 @@ ICON = os.path.join(RESOURCE_DIR, 'icon.svg')
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
-    height = allocation.height
-    width = allocation.width / 3
+    height = allocation.height * 0.9
+    width = allocation.width * 0.3
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
@@ -198,10 +198,8 @@ if __name__ == '__main__':
         print(f'Usage: {sys.argv[0]} [FILE]')
         sys.exit()
 
-    builder = Gtk.Builder()
-    builder.add_from_file(BUILDER)
-
     # Widgets
+    builder = Gtk.Builder.new_from_file(BUILDER)
     window = builder.get_object('window')
     title_label = builder.get_object('title_label')
     device_button = builder.get_object('device_button')
@@ -394,7 +392,7 @@ if __name__ == '__main__':
     details.append_column(column)
 
     if book.get_cover():
-        content_area.connect('size-allocate', lambda _area, allocation:
+        window.connect_after('size-allocate', lambda _area, allocation:
                              cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
     else:
         cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
