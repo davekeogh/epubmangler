@@ -348,17 +348,15 @@
         <property name="margin_bottom">6</property>
         <property name="spacing">6</property>
         <child>
-          <object class="GtkButton" id="cover_button">
+          <object class="GtkEventBox" id="cover_button">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="tooltip_text" translatable="yes">Cover Image</property>
-            <property name="valign">center</property>
-            <property name="relief">none</property>
+            <property name="can_focus">False</property>
+            <property name="visible_window">False</property>
             <child>
               <object class="GtkImage" id="cover">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="stock">gtk-missing-image</property>
                 <property name="icon_size">6</property>
               </object>
             </child>

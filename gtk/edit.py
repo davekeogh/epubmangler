@@ -128,7 +128,7 @@ def details_toggle(button: Gtk.ToggleButton,
     cover.set_visible(not details_on)
 
 
-def set_cover(_b: Gtk.Button, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
+def set_cover(_eb: Gtk.EventBox, _event: Gdk.Event, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
     subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
-    cover_button.connect('clicked', set_cover, cover, content_area, book)
+    cover_button.connect('button-press-event', set_cover, cover, content_area, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     reset_button.connect('clicked', reload_book, book, details_model)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
