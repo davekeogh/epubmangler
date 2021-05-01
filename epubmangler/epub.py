@@ -194,36 +194,51 @@ class EPub:
         `./opf:manifest/opf:item/[@id=content]` gives us an element with a `href` element that points to
         the cover file, the `media-type` attrib also needs to be set if the file type changed."""
 
-        # EPub 3
-        try:
-            name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@properties=\"cover-image\"]",
-                                             NAMESPACES).attrib['href']
-            based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+        cover_file = None
 
-            return os.path.join(based, name)
-
-        except AttributeError:
-            pass
-
-        # EPub 2
         # Some epubs found in the wild, that have been edited(?), have an extra <meta name="cover">
         # element leftover. We look at all of them until we find a matching item in the manifest.
-        for item in self.get_all('cover'):
-            id_tag = item.attrib['content']
+        def epub2() -> str:
+            for item in self.get_all('cover'):
+                id = item.attrib['content']
 
-            if id_tag is not None:
-                try:
-                    name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_tag}\"]",
-                                                    NAMESPACES).attrib['href']
+                if id is not None:
+                    try:
+                        name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id}\"]",
+                                                         NAMESPACES).attrib['href']
+                        based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
 
-                    based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+                        return os.path.join(based, name)
 
-                    return os.path.join(based, name)
-                except AttributeError:
-                    pass
+                    except AttributeError:
+                        pass
 
-        # No cover image
-        return None
+            return None
+
+
+        def epub3() -> str:
+            try:
+                name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@properties=\"cover-image\"]",
+                                                 NAMESPACES).attrib['href']
+                based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
+
+                return os.path.join(based, name)
+
+            except AttributeError:
+                return None
+
+
+        if self.version == '2.0':
+            cover_file = epub2()
+
+        if self.version == '3.0':
+            cover_file = epub3()
+
+            # Some books still define the cover the old way
+            if not cover_file:
+                cover_file = epub2()
+
+        return cover_file
 
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
@@ -280,24 +295,12 @@ class EPub:
     def set_cover(self, path: str) -> None:
         """Replaces the cover image of the book with `path` provided it is an image."""
 
-        based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
-        name = os.path.basename(path)
         mime = mimetypes.guess_type(path)[0]
+        cover = self.get_cover()
 
-        if mime in IMAGE_TYPES and os.path.exists(path):
-            # Don't delete the old image. It is also referenced in the HTML.
-            # TODO: find replace all instances of the image in the book contents.
-            # cover = self.get_cover()
-            # os.remove(cover)
-
-            id_num = self.get_all('cover')[0].attrib['content']
-            element = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id_num}\"]",
-                                                NAMESPACES)
-
-            element.attrib['media-type'] = mime
-            element.attrib['href'] = name
-
-            shutil.copy(path, os.path.join(based, name))
+        if mime in IMAGE_TYPES and os.path.exists(path) and cover:
+            os.remove(cover)
+            shutil.copy(path, cover)
 
 
     def set_identifier(self, name: str, scheme: str = None) -> None:
