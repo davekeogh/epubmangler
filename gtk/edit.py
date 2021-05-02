@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, LANGUAGES, NAMESPACES, VERSION, WEBSITE,
+    IMAGE_TYPES, LANGUAGES, NAMESPACES, VERSION, WEBSITE, XPATHS,
     is_epub, strip_namespace, strip_namespaces
 )
 
@@ -31,7 +31,8 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
 
 
-# Signal callbacks
+# Signal callbacks:
+
 def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
     dialog = Gtk.AboutDialog()
     dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
@@ -43,22 +44,22 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
     dialog.set_website(WEBSITE)
     dialog.set_transient_for(window)
 
-    if dialog.run() == Gtk.ResponseType.DELETE_EVENT:
-        dialog.destroy()
+    dialog.run()
+    dialog.destroy()
 
 
 def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
-    # Use Elementtree to create the new tag, this allows us to create ones not in the specs.
-    element = ET.Element(tag_entry.get_text())
-    element.text = text_entry.get_text()
-    element.attrib = attrib_entry.get_text()
-    book.etree.find('./opf:metadata', NAMESPACES).append(element)
-    model.append([element.tag, element.text, element.attrib])
-    tag_entry.set_text('')
-    text_entry.set_text('')
-    attrib_entry.set_text('')
-    popover.popdown()
+    if tag_entry.get_text() and text_entry.get_text():
+        if not attrib_entry.get_text() or type(eval(attrib_entry.get_text())) != dict:
+            attrib_entry.set_text('{}')
+
+        book.add(tag_entry.get_text(), text_entry.get_text(), eval(attrib_entry.get_text()))
+        model.append([tag_entry.get_text(), text_entry.get_text(), attrib_entry.get_text()])
+        tag_entry.set_text('')
+        text_entry.set_text('')
+        attrib_entry.set_text('')
+        popover.popdown()
 
 
 def popover_clear(_b: Gtk.Button, popover: Gtk.Popover,
@@ -66,7 +67,6 @@ def popover_clear(_b: Gtk.Button, popover: Gtk.Popover,
     tag_entry.set_text('')
     text_entry.set_text('')
     attrib_entry.set_text('')
-    popover.popdown()
 
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
@@ -102,10 +102,6 @@ def cell_edited(_c: Gtk.CellRendererText,
     model[path][col] = new_text
 
 
-def reload_book(_b: Gtk.Button, book: EPub, model: Gtk.ListStore) -> None:
-    ...
-
-
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -128,7 +124,8 @@ def details_toggle(button: Gtk.ToggleButton,
     cover.set_visible(not details_on)
 
 
-def set_cover(_eb: Gtk.EventBox, _event: Gdk.Event, image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
+def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
+              image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -167,10 +164,8 @@ def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, icon: Gtk.Image) -> None
 
 def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
     new_subject = entry.get_text()
-
     model.append([new_subject])
     book.add_subject(new_subject)
-
     entry.set_text('')
     po.popdown()
 
@@ -195,8 +190,7 @@ if __name__ == '__main__':
             books = os.listdir(folder)
             book = EPub(os.path.join(folder, random.choice(books)))
     else:
-        print(f'Usage: {sys.argv[0]} [FILE]')
-        sys.exit()
+        raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
 
     # Widgets
     builder = Gtk.Builder.new_from_file(BUILDER)
@@ -224,7 +218,6 @@ if __name__ == '__main__':
     remove_element_button = builder.get_object('details_remove_button')
     edit_button = builder.get_object('details_edit_button')
     fm_button = builder.get_object('folder_button')
-    reset_button = builder.get_object('reset_button')
     infobar = builder.get_object('infobar')
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
@@ -238,24 +231,22 @@ if __name__ == '__main__':
     popover_add_button = builder.get_object('popover_add_button')
     popover_clear_button = builder.get_object('popover_clear_button')
 
-    list_model = Gtk.ListStore(str)
+    subject_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
-    completion_model = Gtk.ListStore(str)
-
-    volume_monitor = Gio.VolumeMonitor.get()
+    language_model = Gtk.ListStore(str)
+    tag_model = Gtk.ListStore(str)
 
     # Signals
     window.connect('destroy', Gtk.main_quit)
-    about_button.connect('clicked', about, window)
     quit_button.connect('clicked', Gtk.main_quit)
+    about_button.connect('clicked', about, window)
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
-    subject_entry.connect('activate', add_subject, list_model, popover_entry, book)
-    remove_button.connect('clicked', remove_subject, list_model, subject_view, book)
+    subject_entry.connect('activate', add_subject, subject_model, popover_entry, book)
+    remove_button.connect('clicked', remove_subject, subject_model, subject_view, book)
     cover_button.connect('button-press-event', set_cover, cover, content_area, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
-    reset_button.connect('clicked', reload_book, book, details_model)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
                                tag_entry, text_entry, attrib_entry)
     popover_clear_button.connect('clicked', popover_clear, popover_add, tag_entry, text_entry,
@@ -266,25 +257,39 @@ if __name__ == '__main__':
     add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
 
     help_button.connect('clicked', lambda _b:
-                        Gtk.show_uri_on_window(window, f'{WEBSITE}/blob/main/gtk/README.md', Gdk.CURRENT_TIME))
+                        Gtk.show_uri_on_window(window, f'{WEBSITE}/blob/main/gtk/README.md',
+                                               Gdk.CURRENT_TIME))
     edit_button.connect('clicked', lambda _b:
                         Gtk.show_uri_on_window(window, f'file://{book.opf}', Gdk.CURRENT_TIME))
     fm_button.connect('clicked', lambda _b:
-                      Gtk.show_uri_on_window(window, f'file://{book.tempdir.name}', Gdk.CURRENT_TIME))
+                      Gtk.show_uri_on_window(window, f'file://{book.tempdir.name}',
+                                             Gdk.CURRENT_TIME))
 
     title_label.set_text(os.path.basename(book.file))
     window.set_title(os.path.basename(book.file))
+    window.set_icon_from_file(ICON)
 
     # Complete language codes from list of ISO 639-2 codes
     for code in LANGUAGES:
-        completion_model.append([code])
+        language_model.append([code])
 
-    completion = Gtk.EntryCompletion()
-    completion.set_model(completion_model)
-    completion.set_text_column(0)
-    language_entry.set_completion(completion)
+    language_completion = Gtk.EntryCompletion()
+    language_completion.set_model(language_model)
+    language_completion.set_text_column(0)
+    language_entry.set_completion(language_completion)
+
+    # Complete tags from the XPATHS dict
+    for key in XPATHS.keys():
+        tag_model.append([key])
+
+    tag_completion = Gtk.EntryCompletion()
+    tag_completion.set_model(tag_model)
+    tag_completion.set_text_column(0)
+    tag_entry.set_completion(tag_completion)
 
     # Look for connected AND mounted ebook readers
+    volume_monitor = Gio.VolumeMonitor.get()
+
     for drive in volume_monitor.get_connected_drives():
         if drive.get_name() == 'Kindle Internal Storage':
             mount = drive.get_volumes()[0].get_mount()
@@ -304,10 +309,9 @@ if __name__ == '__main__':
         except NameError:
             pass
 
-        builder.get_object(field).connect('changed',
-                                            lambda entry, book, field:
-                                            book.set(field, entry.get_text()),
-                                            book, field)
+        builder.get_object(field).connect('changed', lambda entry, book, field:
+                                          book.set(field, entry.get_text()),
+                                          book, field)
 
     # Date and calendar
     try:
@@ -332,14 +336,14 @@ if __name__ == '__main__':
     builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
 
     builder.get_object('date').connect('changed', lambda entry, book:
-                                        book.set('date', entry.get_text()),
-                                        book)
+                                       book.set('date', entry.get_text()),
+                                       book)
 
     # Subject tags
     for subject in book.get_all('subject'):
-        list_model.append([subject.text])
+        subject_model.append([subject.text])
 
-    subject_view.set_model(list_model)
+    subject_view.set_model(subject_model)
     subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
     # Description
@@ -363,7 +367,7 @@ if __name__ == '__main__':
     for meta in book.metadata:
         if strip_namespace(meta.tag) != 'description':
             details_model.append([strip_namespace(meta.tag), meta.text,
-                                    str(strip_namespaces(meta.attrib))])
+                                 str(strip_namespaces(meta.attrib))])
     details.set_model(details_model)
 
     cell = Gtk.CellRendererText()
