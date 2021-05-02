@@ -25,7 +25,7 @@ XPATHS = {
                          './opf:metadata/dc:date/[@opf:event="publication"]',
                          './opf:metadata/dc:date/[@opf:event="modification"]'],
 
-    'id'            :   ['./opf:metadata/dc:identifier'],
+    'identifier'    :   ['./opf:metadata/dc:identifier'],
     'isbn'          :   ['./opf:metadata/dc:identifier/[@opf:scheme="isbn"]',
                          './opf:metadata/dc:identifier/[@opf:scheme="ISBN"]'],
     'doi'           :   ['./opf:metadata/dc:identifier/[@opf:scheme="doi"]'
