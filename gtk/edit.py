@@ -10,19 +10,19 @@ import xml.etree.ElementTree as ET
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, LANGUAGES, NAMESPACES, VERSION, WEBSITE, XPATHS,
+    IMAGE_TYPES, LANGUAGES, VERSION, WEBSITE, XPATHS,
     is_epub, strip_namespace, strip_namespaces
 )
 
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
 
 # TODO: This needs to get set during install
 RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
 BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
-ICON = os.path.join(RESOURCE_DIR, 'icon.svg')
+ICON = os.path.join(RESOURCE_DIR, 'epubmangler.svg')
 
 
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
@@ -104,14 +104,13 @@ def cell_edited(_c: Gtk.CellRendererText,
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
+    dialog.set_current_name(os.path.basename(book.file))
+    dialog.set_do_overwrite_confirmation(True)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                        Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
     if dialog.run() == Gtk.ResponseType.OK:
-        filename = dialog.get_filename()
-
-        if not os.path.exists(filename):
-            book.save(filename)
+        book.save(dialog.get_filename())
 
     dialog.destroy()
 
@@ -395,7 +394,7 @@ if __name__ == '__main__':
     column.set_expand(True)
     details.append_column(column)
 
-    if book.get_cover():
+    if os.path.exists(book.get_cover()):
         window.connect_after('size-allocate', lambda _area, allocation:
                              cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
     else:

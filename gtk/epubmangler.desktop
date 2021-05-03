@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.5
+Type=Application
+Name=EPub Mangler
+GenericName=E-book Metadata Editor
+Icon=epubmangler
+TryExec=epubmangler
+Exec=epubmangler %F
+MimeType=application/epub+zip;
+Categories=Utility;
