@@ -6,8 +6,6 @@
 
 import mimetypes, os, os.path, random, sys, time
 
-import xml.etree.ElementTree as ET
-
 from epubmangler import (
     EPub,
     IMAGE_TYPES, LANGUAGES, VERSION, WEBSITE, XPATHS,
