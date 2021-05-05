@@ -121,12 +121,27 @@ def details_toggle(button: Gtk.ToggleButton,
     cover.set_visible(not details_on)
 
 
+def update_preview(chooser, image):
+    selected = chooser.get_preview_filename()
+
+    if selected and mimetypes.guess_type(selected)[0] in IMAGE_TYPES:
+        image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(selected, 256, 256))
+        chooser.set_preview_widget_active(True)
+    else:
+        chooser.set_preview_widget_active(False)
+
+
 def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
-              image: Gtk.Image, content_area: Gtk.Box, book: EPub) -> None:
+              image: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                        Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+
+    preview = Gtk.Image()
+    dialog.set_preview_widget(preview)
+    dialog.set_use_preview_label(False)
+    dialog.connect('update-preview', update_preview, preview)
 
     img_filter = Gtk.FileFilter()
     img_filter.add_mime_type('image/*')
@@ -142,7 +157,7 @@ def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
         filename = dialog.get_filename()
 
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
-            image.set_from_pixbuf(scale_cover(filename, content_area.get_allocation()))
+            image.set_from_pixbuf(scale_cover(filename, window.get_allocation()))
             book.set_cover(filename)
 
     dialog.destroy()
@@ -242,7 +257,7 @@ if __name__ == '__main__':
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
     subject_entry.connect('activate', add_subject, subject_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, subject_model, subject_view, book)
-    cover_button.connect('button-press-event', set_cover, cover, content_area, book)
+    cover_button.connect('button-press-event', set_cover, cover, window, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
                                tag_entry, text_entry, attrib_entry)
@@ -354,9 +369,9 @@ if __name__ == '__main__':
         buffer.set_text(description_text)
 
         buffer.connect('changed', lambda buffer, book:
-                        book.set('description', buffer.get_text(buffer.get_start_iter(),
-                                                                buffer.get_end_iter(), True)),
-                        book)
+                       book.set('description', buffer.get_text(buffer.get_start_iter(),
+                                                               buffer.get_end_iter(), True)),
+                       book)
 
         description.set_buffer(buffer)
 
@@ -365,6 +380,7 @@ if __name__ == '__main__':
         if strip_namespace(meta.tag) != 'description':
             details_model.append([strip_namespace(meta.tag), meta.text,
                                  str(strip_namespaces(meta.attrib))])
+
     details.set_model(details_model)
 
     cell = Gtk.CellRendererText()
@@ -392,9 +408,9 @@ if __name__ == '__main__':
     column.set_expand(True)
     details.append_column(column)
 
-    if os.path.exists(book.get_cover()):
-        window.connect_after('size-allocate', lambda _area, allocation:
-                             cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
+    if book.get_cover() and os.path.exists(book.get_cover()):
+        window.connect('size-allocate', lambda _win, allocation:
+                       cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
     else:
         cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
