@@ -15,7 +15,7 @@ from epubmangler import (
 import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 # TODO: This needs to get set during install
 RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
@@ -27,6 +27,31 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     height = allocation.height * 0.9
     width = allocation.width * 0.3
     return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
+
+
+def volume_monitor_idle(button: Gtk.Button) -> bool:
+    volume_monitor = Gio.VolumeMonitor.get()
+
+    for drive in volume_monitor.get_connected_drives():
+        if drive.get_name() == 'Kindle Internal Storage':
+            try:
+                mount = drive.get_volumes()[0].get_mount()
+            except IndexError:  # Not mounted
+                button.hide()
+                break
+
+            if mount:
+                root = os.path.join(mount.get_root().get_path(), 'documents')
+
+                if os.path.exists(root):
+                    button.connect('clicked', send_book, book, root)
+                    button.set_label('Send to Kindle')
+                    button.show()
+
+            else:
+                button.hide()
+
+    return True  # Don't remove GSourceFunc
 
 
 # Signal callbacks:
@@ -58,13 +83,6 @@ def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book
         text_entry.set_text('')
         attrib_entry.set_text('')
         popover.popdown()
-
-
-def popover_clear(_b: Gtk.Button, popover: Gtk.Popover,
-                  tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
-    tag_entry.set_text('')
-    text_entry.set_text('')
-    attrib_entry.set_text('')
 
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
@@ -248,7 +266,10 @@ if __name__ == '__main__':
     language_model = Gtk.ListStore(str)
     tag_model = Gtk.ListStore(str)
 
-    # Signals
+    # Look for connected AND mounted ebook readers
+    idle_id = GLib.idle_add(volume_monitor_idle, device_button)
+
+    # Signal connection
     window.connect('destroy', Gtk.main_quit)
     quit_button.connect('clicked', Gtk.main_quit)
     about_button.connect('clicked', about, window)
@@ -261,13 +282,17 @@ if __name__ == '__main__':
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
                                tag_entry, text_entry, attrib_entry)
-    popover_clear_button.connect('clicked', popover_clear, popover_add, tag_entry, text_entry,
-                                 attrib_entry)
-
     infobar.connect('response', lambda infobar, _response: infobar.destroy())
     date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
     add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
-
+    popover_clear_button.connect('clicked', lambda _b, tag, text, attrib:
+                                 [entry.set_text('') for entry in (tag, text, attrib)],
+                                 tag_entry, text_entry, attrib_entry)
+    subject_view.connect('cursor-changed', lambda view, button:
+                         button.set_sensitive((view.get_cursor().path is not None)), remove_button)
+    details.connect('cursor-changed', lambda view, button:
+                    button.set_sensitive((view.get_cursor().path is not None)),
+                    remove_element_button)
     help_button.connect('clicked', lambda _b:
                         Gtk.show_uri_on_window(window, f'{WEBSITE}/blob/main/gtk/README.md',
                                                Gdk.CURRENT_TIME))
@@ -277,9 +302,12 @@ if __name__ == '__main__':
                       Gtk.show_uri_on_window(window, f'file://{book.tempdir.name}',
                                              Gdk.CURRENT_TIME))
 
-    title_label.set_text(os.path.basename(book.file))
-    window.set_title(os.path.basename(book.file))
-    window.set_icon_from_file(ICON)
+    # Cover image
+    if book.get_cover() and os.path.exists(book.get_cover()):
+        window.connect('size-allocate', lambda _win, allocation:
+                       cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
+    else:
+        cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
     # Complete language codes from list of ISO 639-2 codes
     for code in LANGUAGES:
@@ -298,21 +326,6 @@ if __name__ == '__main__':
     tag_completion.set_model(tag_model)
     tag_completion.set_text_column(0)
     tag_entry.set_completion(tag_completion)
-
-    # Look for connected AND mounted ebook readers
-    volume_monitor = Gio.VolumeMonitor.get()
-
-    for drive in volume_monitor.get_connected_drives():
-        if drive.get_name() == 'Kindle Internal Storage':
-            mount = drive.get_volumes()[0].get_mount()
-
-            if mount:
-                root = os.path.join(mount.get_root().get_path(), 'documents')
-
-                if os.path.exists(root):
-                    device_button.connect('clicked', send_book, book, root)
-                    device_button.set_label('Send to Kindle')
-                    device_button.show()
 
     # Populate fields
     for field in ('title', 'creator', 'publisher', 'language'):
@@ -408,11 +421,10 @@ if __name__ == '__main__':
     column.set_expand(True)
     details.append_column(column)
 
-    if book.get_cover() and os.path.exists(book.get_cover()):
-        window.connect('size-allocate', lambda _win, allocation:
-                       cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
-    else:
-        cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
-
+    # Window
+    title_label.set_text(os.path.basename(book.file))
+    window.set_title(os.path.basename(book.file))
+    window.set_icon_from_file(ICON)
     window.show()
+
     Gtk.main()
