@@ -37,6 +37,7 @@ class EPub:
     etree: ET.ElementTree
     file: str
     metadata: List[ET.Element]
+    modified: bool
     opf: str
     tempdir: TempDir
     version: str
@@ -59,8 +60,9 @@ class EPub:
         try:
             self.opf = find_opf_files(self.tempdir.name)[0]
             self.etree = ET.parse(self.opf)
-            self.version = self.etree.getroot().attrib['version']
             self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
+            self.version = self.etree.getroot().attrib['version']
+            self.modified = False
         except IndexError:
             raise ValueError(f"{path} does not appear to be a valid .epub file.")
         except ET.ParseError:
@@ -124,6 +126,7 @@ class EPub:
                 element.attrib = {'opf:file-as' : file_as(text)}
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
+        self.modified = True
 
 
     def add_subject(self, name: str) -> bool:
@@ -137,6 +140,7 @@ class EPub:
         element.text = name
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
+        self.modified = True
 
         return True
 
@@ -255,6 +259,8 @@ class EPub:
         else:
             self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
 
+        self.modified = True
+
 
     def remove_subject(self, name: str) -> None:
         """Removes a subject element from the tree."""
@@ -262,6 +268,8 @@ class EPub:
         for subject in self.get_all('subject'):
             if subject.text == name:
                 self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(subject)
+
+        self.modified = True
 
 
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
@@ -291,6 +299,8 @@ class EPub:
                 element.text = text
                 element.attrib = attrib
 
+        self.modified = True
+
 
     def set_cover(self, path: str) -> None:
         """Replaces the cover image of the book with `path` provided it is an image."""
@@ -301,6 +311,8 @@ class EPub:
         if mime in IMAGE_TYPES and os.path.exists(path) and cover:
             os.remove(cover)
             shutil.copy(path, cover)
+
+        self.modified = True
 
 
     def set_identifier(self, name: str, scheme: str = None) -> None:
@@ -323,6 +335,7 @@ class EPub:
         # Work around ElementTree issue: https://bugs.python.org/issue17088 (See comment in save)
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
+        self.modified = True
 
 
     def save(self, path: str, overwrite: bool = False) -> None:
