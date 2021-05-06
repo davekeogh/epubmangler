@@ -8,7 +8,7 @@ import mimetypes, os, os.path, random, sys, time
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, LANGUAGES, VERSION, WEBSITE, XPATHS,
+    IMAGE_TYPES, VERSION, WEBSITE, XPATHS,
     is_epub, strip_namespace, strip_namespaces
 )
 
@@ -290,7 +290,6 @@ if __name__ == '__main__':
 
     subject_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
-    language_model = Gtk.ListStore(str)
     tag_model = Gtk.ListStore(str)
 
     # Look for connected AND mounted ebook readers
@@ -335,15 +334,6 @@ if __name__ == '__main__':
                        cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
     else:
         cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
-
-    # Complete language codes from list of ISO 639-2 codes
-    for code in LANGUAGES:
-        language_model.append([code])
-
-    language_completion = Gtk.EntryCompletion()
-    language_completion.set_model(language_model)
-    language_completion.set_text_column(0)
-    language_entry.set_completion(language_completion)
 
     # Complete tags from the XPATHS dict
     for key in XPATHS.keys():
