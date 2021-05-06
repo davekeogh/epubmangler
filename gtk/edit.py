@@ -56,6 +56,31 @@ def volume_monitor_idle(button: Gtk.Button) -> bool:
 
 # Signal callbacks:
 
+def quit_confirm_unsaved(_caller: Gtk.Widget, window: Gtk.Window, book: EPub) -> None:
+    if book.modified:
+        dialog = Gtk.MessageDialog(text='File has unsaved changes',
+                                   message_type=Gtk.MessageType.QUESTION)
+        dialog.format_secondary_text('Do you want to save them?')
+        dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,
+                           Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            chooser = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
+            chooser.set_current_name(os.path.basename(book.file))
+            chooser.set_do_overwrite_confirmation(True)
+            chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+
+            if chooser.run() == Gtk.ResponseType.OK:
+                book.save(chooser.get_filename())
+
+            chooser.destroy()
+
+        dialog.destroy()
+
+    Gtk.main_quit()
+
+
 def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
     dialog = Gtk.AboutDialog()
     dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
@@ -219,6 +244,8 @@ if __name__ == '__main__':
             folder = '/home/david/Projects/epubmangler/books/calibre'
             books = os.listdir(folder)
             book = EPub(os.path.join(folder, random.choice(books)))
+        else:
+            raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
     else:
         raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
 
@@ -270,8 +297,8 @@ if __name__ == '__main__':
     idle_id = GLib.idle_add(volume_monitor_idle, device_button)
 
     # Signal connection
-    window.connect('destroy', Gtk.main_quit)
-    quit_button.connect('clicked', Gtk.main_quit)
+    window.connect('destroy', quit_confirm_unsaved, window, book)
+    quit_button.connect('clicked', quit_confirm_unsaved, window, book)
     about_button.connect('clicked', about, window)
     save_button.connect('clicked', save_file, book, window)
     details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)

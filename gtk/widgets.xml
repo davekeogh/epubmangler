@@ -533,6 +533,7 @@
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_top">4</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
@@ -628,6 +629,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin_top">4</property>
                 <property name="label" translatable="yes">Description:</property>
                 <property name="xalign">1</property>
                 <property name="yalign">0</property>
@@ -745,6 +747,7 @@
                   <object class="GtkTreeView" id="details">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="enable_grid_lines">horizontal</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
                     </child>
