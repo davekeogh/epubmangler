@@ -183,7 +183,7 @@ class EPub:
             elements = map(lambda e: e if e is not None else False,
                            self.etree.getroot().findall(xpath, NAMESPACES))
 
-        return elements
+        return list(elements)
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
