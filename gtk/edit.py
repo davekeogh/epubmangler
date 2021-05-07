@@ -26,13 +26,13 @@ ICON = os.path.join(RESOURCE_DIR, 'epubmangler.svg')
 def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     height = allocation.height * 0.9
     width = allocation.width * 0.3
-    return GdkPixbuf.Pixbuf.new_from_file_at_scale(file, width, height, True)
+
+    return GdkPixbuf.Pixbuf.new_from_file_at_size(file, width, height)
 
 
 def volume_monitor_idle(button: Gtk.Button) -> bool:
-    volume_monitor = Gio.VolumeMonitor.get()
-
-    for drive in volume_monitor.get_connected_drives():
+    # Look for connected AND mounted ebook readers
+    for drive in Gio.VolumeMonitor.get().get_connected_drives():
         if drive.get_name() == 'Kindle Internal Storage':
             try:
                 mount = drive.get_volumes()[0].get_mount()
@@ -51,7 +51,16 @@ def volume_monitor_idle(button: Gtk.Button) -> bool:
             else:
                 button.hide()
 
-    return True  # Don't remove GSourceFunc
+    return GLib.SOURCE_CONTINUE
+
+
+def file_modified_idle(book: EPub, button: Gtk.Button) -> bool:
+    if book.modified:
+        button.get_style_context().add_class('suggested-action')
+
+        return GLib.SOURCE_REMOVE
+    else:
+        return GLib.SOURCE_CONTINUE
 
 
 # Signal callbacks:
@@ -119,8 +128,7 @@ def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, boo
 
 
 def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
-    file_name = os.path.basename(book.file)
-    copy_to = os.path.join(device_path, file_name)
+    copy_to = os.path.join(device_path, os.path.basename(book.file))
 
     if not os.path.exists(copy_to):
         book.save(copy_to)
@@ -128,7 +136,7 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
     else:
         dialog = Gtk.MessageDialog(text='File already exists',
                                    message_type=Gtk.MessageType.QUESTION)
-        dialog.format_secondary_text(f'Replace file "{file_name}"?')
+        dialog.format_secondary_text(f'Replace file "{os.path.basename(book.file)}"?')
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
@@ -141,6 +149,7 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
 def cell_edited(_c: Gtk.CellRendererText,
                 path: str, new_text: str, model: Gtk.ListStore, col: int) -> None:
     model[path][col] = new_text
+    # TODO: Update the EPub
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -292,8 +301,8 @@ if __name__ == '__main__':
     details_model = Gtk.ListStore(str, str, str)
     tag_model = Gtk.ListStore(str)
 
-    # Look for connected AND mounted ebook readers
-    idle_id = GLib.idle_add(volume_monitor_idle, device_button)
+    GLib.idle_add(volume_monitor_idle, device_button)
+    GLib.idle_add(file_modified_idle, book, save_button)
 
     # Signal connection
     window.connect('destroy', quit_confirm_unsaved, window, book)
