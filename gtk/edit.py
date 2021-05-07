@@ -8,7 +8,7 @@ import mimetypes, os, os.path, random, sys, time
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, VERSION, WEBSITE, XPATHS,
+    IMAGE_TYPES, VERSION, TIME_FORMAT, WEBSITE, XPATHS,
     is_epub, strip_namespace, strip_namespaces
 )
 
@@ -30,7 +30,7 @@ def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
     return GdkPixbuf.Pixbuf.new_from_file_at_size(file, width, height)
 
 
-def volume_monitor_idle(button: Gtk.Button) -> bool:
+def volume_monitor_idle(book: EPub, button: Gtk.Button) -> bool:
     # Look for connected AND mounted ebook readers
     for drive in Gio.VolumeMonitor.get().get_connected_drives():
         if drive.get_name() == 'Kindle Internal Storage':
@@ -61,6 +61,32 @@ def file_modified_idle(book: EPub, button: Gtk.Button) -> bool:
         return GLib.SOURCE_REMOVE
     else:
         return GLib.SOURCE_CONTINUE
+
+
+def sync_fields(book: EPub, builder: Gtk.Builder, subjects: Gtk.ListStore,
+                details: Gtk.ListStore) -> None:
+
+    subjects.clear()
+    details.clear()
+
+    for field in ('title', 'creator', 'publisher', 'language'):
+        try:
+            builder.get_object(field).set_text(book.get(field).text)
+        except NameError:
+            pass
+
+    try:
+        date = book.get('date').text
+    except NameError:
+        date = time.strftime(TIME_FORMAT)
+    builder.get_object('date').set_text(date.split('T')[0])
+
+    [subjects.append([subject.text]) for subject in book.get_all('subject')]
+
+    for meta in book.metadata:
+        if strip_namespace(meta.tag) != 'description':
+            details.append([strip_namespace(meta.tag), meta.text,
+                           str(strip_namespaces(meta.attrib))])
 
 
 # Signal callbacks:
@@ -147,9 +173,10 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
 
 
 def cell_edited(_c: Gtk.CellRendererText,
-                path: str, new_text: str, model: Gtk.ListStore, col: int) -> None:
+                path: str, new_text: str, model: Gtk.ListStore, col: int, book: EPub) -> None:
     model[path][col] = new_text
-    # TODO: Update the EPub
+    # column 3 (attrib) is a dict stored as a string in the liststore
+    book.set(model[path][0], model[path][1], eval(model[path][2]))
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -165,15 +192,15 @@ def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
     dialog.destroy()
 
 
-def details_toggle(button: Gtk.ToggleButton,
-                   cover: Gtk.Button, main: Gtk.Grid, details: Gtk.TreeView) -> None:
-    details_on = button.get_active()
-    details.set_visible(details_on)
-    main.set_visible(not details_on)
-    cover.set_visible(not details_on)
+def details_toggle(button: Gtk.ToggleButton, builder: Gtk.Builder, subjects: Gtk.ListStore,
+                   details: Gtk.ListStore, book: EPub) -> None:
+    sync_fields(book, builder, subjects, details)
+    builder.get_object('details_area').set_visible(button.get_active())
+    builder.get_object('main').set_visible(not button.get_active())
+    builder.get_object('cover').set_visible(not button.get_active())
 
 
-def update_preview(chooser, image):
+def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
     selected = chooser.get_preview_filename()
 
     if selected and mimetypes.guess_type(selected)[0] in IMAGE_TYPES:
@@ -266,20 +293,16 @@ if __name__ == '__main__':
     save_button = builder.get_object('save_button')
     details_button = builder.get_object('details_button')
     menu_button = builder.get_object('menu_button')
-    content_area = builder.get_object('box')
-    main_area = builder.get_object('main')
     cover = builder.get_object('cover')
     cover_button = builder.get_object('cover_button')
     calendar = builder.get_object('calendar')
     date_entry = builder.get_object('date')
     subject_view = builder.get_object('subjects')
     subject_entry = builder.get_object('subject_entry')
-    language_entry = builder.get_object('language')
     remove_button = builder.get_object('remove_button')
     calendar_image = builder.get_object('calendar_image')
     description = builder.get_object('description')
     details = builder.get_object('details')
-    details_area = builder.get_object('details_area')
     add_element_button = builder.get_object('details_add_button')
     remove_element_button = builder.get_object('details_remove_button')
     edit_button = builder.get_object('details_edit_button')
@@ -297,11 +320,11 @@ if __name__ == '__main__':
     popover_add_button = builder.get_object('popover_add_button')
     popover_clear_button = builder.get_object('popover_clear_button')
 
-    subject_model = Gtk.ListStore(str)
+    subjects_model = Gtk.ListStore(str)
     details_model = Gtk.ListStore(str, str, str)
     tag_model = Gtk.ListStore(str)
 
-    GLib.idle_add(volume_monitor_idle, device_button)
+    GLib.idle_add(volume_monitor_idle, book, device_button)
     GLib.idle_add(file_modified_idle, book, save_button)
 
     # Signal connection
@@ -309,10 +332,10 @@ if __name__ == '__main__':
     quit_button.connect('clicked', quit_confirm_unsaved, window, book)
     about_button.connect('clicked', about, window)
     save_button.connect('clicked', save_file, book, window)
-    details_button.connect('toggled', details_toggle, cover_button, main_area, details_area)
+    details_button.connect('toggled', details_toggle, builder, subjects_model, details_model, book)
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
-    subject_entry.connect('activate', add_subject, subject_model, popover_entry, book)
-    remove_button.connect('clicked', remove_subject, subject_model, subject_view, book)
+    subject_entry.connect('activate', add_subject, subjects_model, popover_entry, book)
+    remove_button.connect('clicked', remove_subject, subjects_model, subject_view, book)
     cover_button.connect('button-press-event', set_cover, cover, window, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
@@ -368,11 +391,11 @@ if __name__ == '__main__':
     try:
         date = book.get('date').text
     except NameError:
-        date = time.strftime('%Y-%m-%dT%H:%M:%S%z')
+        date = time.strftime(TIME_FORMAT)
 
     my_time = None
 
-    for format_string in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%d', '%Y'):
+    for format_string in (TIME_FORMAT, '%Y-%m-%d', '%Y'):
         try:
             my_time = time.strptime(date, format_string)
             break
@@ -391,10 +414,8 @@ if __name__ == '__main__':
                                        book)
 
     # Subject tags
-    for subject in book.get_all('subject'):
-        subject_model.append([subject.text])
-
-    subject_view.set_model(subject_model)
+    [subjects_model.append([subject.text]) for subject in book.get_all('subject')]
+    subject_view.set_model(subjects_model)
     subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
 
     # Description
@@ -424,7 +445,7 @@ if __name__ == '__main__':
 
     cell = Gtk.CellRendererText()
     cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 0)
+    cell.connect('edited', cell_edited, details_model, 0, book)
 
     column = Gtk.TreeViewColumn('Tag', cell, text=0)
     column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
@@ -432,7 +453,7 @@ if __name__ == '__main__':
 
     cell = Gtk.CellRendererText()
     cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 1)
+    cell.connect('edited', cell_edited, details_model, 1, book)
 
     column = Gtk.TreeViewColumn('Text', cell, text=1)
     column.set_min_width(details.get_allocation().width * 0.6)
@@ -441,7 +462,7 @@ if __name__ == '__main__':
 
     cell = Gtk.CellRendererText()
     cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 2)
+    cell.connect('edited', cell_edited, details_model, 2, book)
 
     column = Gtk.TreeViewColumn('Attributes', cell, text=2)
     column.set_expand(True)
