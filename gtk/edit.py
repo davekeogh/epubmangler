@@ -23,11 +23,8 @@ BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
 ICON = os.path.join(RESOURCE_DIR, 'epubmangler.svg')
 
 
-def scale_cover(file: str, allocation: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
-    height = allocation.height * 0.9
-    width = allocation.width * 0.3
-
-    return GdkPixbuf.Pixbuf.new_from_file_at_size(file, width, height)
+def scale_cover(file: str, rect: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
+    return GdkPixbuf.Pixbuf.new_from_file_at_size(file, (rect.width * 0.3), (rect.height * 0.9))
 
 
 def volume_monitor_idle(book: EPub, button: Gtk.Button) -> bool:
@@ -47,7 +44,6 @@ def volume_monitor_idle(book: EPub, button: Gtk.Button) -> bool:
                     button.connect('clicked', send_book, book, root)
                     button.set_label('Send to Kindle')
                     button.show()
-
             else:
                 button.hide()
 
@@ -65,7 +61,6 @@ def file_modified_idle(book: EPub, button: Gtk.Button) -> bool:
 
 def sync_fields(book: EPub, builder: Gtk.Builder, subjects: Gtk.ListStore,
                 details: Gtk.ListStore) -> None:
-
     subjects.clear()
     details.clear()
 
@@ -79,6 +74,7 @@ def sync_fields(book: EPub, builder: Gtk.Builder, subjects: Gtk.ListStore,
         date = book.get('date').text
     except NameError:
         date = time.strftime(TIME_FORMAT)
+
     builder.get_object('date').set_text(date.split('T')[0])
 
     [subjects.append([subject.text]) for subject in book.get_all('subject')]
@@ -134,6 +130,7 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
 def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
     if tag_entry.get_text() and text_entry.get_text():
+        # The attributes dict is stored as a string in the GtkListStore
         if not attrib_entry.get_text() or type(eval(attrib_entry.get_text())) != dict:
             attrib_entry.set_text('{}')
 
@@ -211,7 +208,7 @@ def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
 
 
 def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
-              image: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
+              cover: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
     dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
                                    action=Gtk.FileChooserAction.OPEN)
     dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
@@ -236,8 +233,9 @@ def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
         filename = dialog.get_filename()
 
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
-            image.set_from_pixbuf(scale_cover(filename, window.get_allocation()))
             book.set_cover(filename)
+            window.connect('size-allocate', lambda _win, allocation:
+                           cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
 
     dialog.destroy()
 
@@ -427,7 +425,6 @@ if __name__ == '__main__':
     if description_text:
         buffer = Gtk.TextBuffer()
         buffer.set_text(description_text)
-
         buffer.connect('changed', lambda buffer, book:
                        book.set('description', buffer.get_text(buffer.get_start_iter(),
                                                                buffer.get_end_iter(), True)),
