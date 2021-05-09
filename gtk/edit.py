@@ -4,7 +4,7 @@
 # TODO:
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
-import mimetypes, os, os.path, random, sys, time
+import json, mimetypes, os, os.path, random, sys, time
 
 from epubmangler import (
     EPub,
@@ -130,11 +130,13 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
 def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
     if tag_entry.get_text() and text_entry.get_text():
-        # The attributes dict is stored as a string in the GtkListStore
-        if not attrib_entry.get_text() or type(eval(attrib_entry.get_text())) != dict:
-            attrib_entry.set_text('{}')
+        # Column 3 (attrib) is a dict stored as a string in the GtkListStore
+        try:
+            attribs = json.loads(attrib_entry.get_text())
+        except json.JSONDecodeError:
+            attribs = {}
 
-        book.add(tag_entry.get_text(), text_entry.get_text(), eval(attrib_entry.get_text()))
+        book.add(tag_entry.get_text(), text_entry.get_text(), attribs)
         model.append([tag_entry.get_text(), text_entry.get_text(), attrib_entry.get_text()])
         tag_entry.set_text('')
         text_entry.set_text('')
@@ -144,9 +146,14 @@ def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book
 
 def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
     iter = view.get_selection().get_selected()[1]
-
+    # Column 3 (attrib) is a dict stored as a string in the GtkListStore
     if iter:
-        book.remove(model.get_value(iter, 0), model.get_value(iter, 2))
+        try:
+            attribs = json.loads(model.get_value(iter, 2))
+        except json.JSONDecodeError:
+            attribs = {}
+
+        book.remove(model.get_value(iter, 0), attribs)
         model.remove(iter)
 
 
@@ -172,8 +179,13 @@ def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
 def cell_edited(_c: Gtk.CellRendererText,
                 path: str, new_text: str, model: Gtk.ListStore, col: int, book: EPub) -> None:
     model[path][col] = new_text
-    # column 3 (attrib) is a dict stored as a string in the liststore
-    book.set(model[path][0], model[path][1], eval(model[path][2]))
+    # Column 3 (attrib) is a dict stored as a string in the GtkListStore
+    try:
+        attribs = json.loads(model[path][2])
+    except json.JSONDecodeError:
+        attribs = {}
+
+    book.set(model[path][0], model[path][1], attribs)
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -196,6 +208,13 @@ def details_toggle(button: Gtk.ToggleButton, builder: Gtk.Builder, subjects: Gtk
     builder.get_object('main').set_visible(not button.get_active())
     builder.get_object('cover').set_visible(not button.get_active())
 
+
+def warnings_toggle(button: Gtk.ModelButton, builder: Gtk.Builder, book: EPub) -> None:
+    current = button.get_property('active')
+    button.set_property('active', not current)
+    builder.get_object('infobar').set_visible(current)
+    # TODO: Save this setting?
+    # This should also hide the save unchanged dialog
 
 def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
     selected = chooser.get_preview_filename()
@@ -235,7 +254,7 @@ def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
         if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
             book.set_cover(filename)
             window.connect('size-allocate', lambda _win, allocation:
-                           cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
+                           cover.set_from_pixbuf(scale_cover(filename, allocation)))
 
     dialog.destroy()
 
@@ -276,8 +295,7 @@ if __name__ == '__main__':
             # TODO: Delete
             # Select a random book from local collection of epubs
             folder = '/home/david/Projects/epubmangler/books/calibre'
-            books = os.listdir(folder)
-            book = EPub(os.path.join(folder, random.choice(books)))
+            book = EPub(os.path.join(folder, random.choice(os.listdir(folder))))
         else:
             raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
     else:
@@ -308,6 +326,7 @@ if __name__ == '__main__':
     infobar = builder.get_object('infobar')
     popover_cal = builder.get_object('popovercalendar')
     popover_entry = builder.get_object('popoverentry')
+    warnings_button = builder.get_object('warnings_button')
     help_button = builder.get_object('help_button')
     about_button = builder.get_object('about_button')
     quit_button = builder.get_object('quit_button')
@@ -330,6 +349,7 @@ if __name__ == '__main__':
     quit_button.connect('clicked', quit_confirm_unsaved, window, book)
     about_button.connect('clicked', about, window)
     save_button.connect('clicked', save_file, book, window)
+    warnings_button.connect('clicked', warnings_toggle, builder, book)
     details_button.connect('toggled', details_toggle, builder, subjects_model, details_model, book)
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
     subject_entry.connect('activate', add_subject, subjects_model, popover_entry, book)
