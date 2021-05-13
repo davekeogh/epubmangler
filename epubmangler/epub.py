@@ -119,7 +119,7 @@ class EPub:
         if attrib:
             element.attrib = attrib
 
-        if name == 'creator':
+        if name in ('creator', 'contributor'):
             if attrib:
                 element.attrib['opf:file-as'] = file_as(text)
             else:
@@ -275,7 +275,7 @@ class EPub:
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Sets the text and attribs of an element."""
 
-        if name == 'creator':
+        if name in ('creator', 'contributor'):
             if not attrib:
                 attrib = {}
             attrib['opf:file-as'] = file_as(text)
