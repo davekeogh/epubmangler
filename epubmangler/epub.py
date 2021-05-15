@@ -85,7 +85,7 @@ class EPub:
                  _traceback: Optional[TracebackType]) -> bool:
 
         self.__del__()
-        return False # Raise any thrown exception before exiting
+        return False  # Raise any thrown exception before exiting
 
 
     # The next two methods make the object subscriptable like a Dict
@@ -109,12 +109,12 @@ class EPub:
             for meta in self.get_all(name):
                 if strip_namespaces(meta.attrib) == strip_namespaces(attrib):
                     raise NameError(f"{os.path.basename(self.file)} already has an \
-                                        identical element. It is usually incorrect to have \
-                                        more than one of most elements.")
+                                    identical element. It is usually incorrect to have \
+                                    more than one of most elements.")
         except NameError:
             pass
 
-        element = ET.Element(namespaced_text(f'dc:{name}')) # Add the dc: namespace to everything?
+        element = ET.Element(namespaced_text(f'dc:{name}'))  # Add the dc: namespace to everything?
         element.text = text
         if attrib:
             element.attrib = attrib
@@ -123,10 +123,23 @@ class EPub:
             if attrib:
                 element.attrib['opf:file-as'] = file_as(text)
             else:
-                element.attrib = {'opf:file-as' : file_as(text)}
+                element.attrib = {'opf:file-as': file_as(text)}
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
         self.modified = True
+
+
+    def add_cover(self, path: str) -> None:
+        """Adds a cover element and the required additional metadata."""
+
+        if self.has_element('cover'):
+            raise NameError(f"{os.path.basename(self.file)} already has a cover. Use set_cover \
+                            if you want to change it")
+
+        if self.version == '2.0':
+            ...
+        elif self.version == '3.0':
+            ...
 
 
     def add_subject(self, name: str) -> bool:
@@ -179,11 +192,12 @@ class EPub:
             raise NameError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
-            # ET.Element evaluates as False so we need test that element is not None
+            # ET.Element can evaluate as False, so we need test that element is not None
             elements = map(lambda e: e if e is not None else False,
                            self.etree.getroot().findall(xpath, NAMESPACES))
 
         return list(elements)
+
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
@@ -222,8 +236,8 @@ class EPub:
 
         def epub3() -> str:
             try:
-                name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@properties=\"cover-image\"]",
-                                                 NAMESPACES).attrib['href']
+                cover_xpath = "./opf:manifest/opf:item/[@properties=\"cover-image\"]"
+                name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
                 based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
 
                 return os.path.join(based, name)
@@ -235,7 +249,7 @@ class EPub:
         if self.version == '2.0':
             cover_file = epub2()
 
-        if self.version == '3.0':
+        elif self.version == '3.0':
             cover_file = epub3()
 
             # Some books still define the cover the old way
@@ -243,6 +257,15 @@ class EPub:
                 cover_file = epub2()
 
         return cover_file
+
+
+    def has_element(self, name: str) -> bool:
+        """Returns True if the EPub has a matching element. Otheriwse, returns False."""
+
+        if self.get_all(name):
+            return True
+        else:
+            return False
 
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
@@ -327,7 +350,7 @@ class EPub:
         if not scheme: # TODO: Improve this detection
             if name.startswith('http'):
                 scheme = 'URI'
-            if name.startswith('doi:'):
+            elif name.startswith('doi:'):
                 scheme = 'DOI'
             else:
                 scheme = 'ISBN'
@@ -354,7 +377,7 @@ class EPub:
         if os.path.exists(path) and not overwrite:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
-        self.add('date', time.strftime(TIME_FORMAT), {'event' : 'modified'})
+        self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
 
         name = os.path.join(self.tempdir.name, find_opf_files(self.tempdir.name)[0])
         self.etree.write(name, xml_declaration=True, encoding='utf-8', method='xml')

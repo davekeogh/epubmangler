@@ -23,11 +23,11 @@ def file_as(name: str) -> str:
 
     if not parts:
         return name
+    
+    if len(parts) == 1:
+        return name
 
     name = parts[0]
-
-    if len(parts) == 1:
-        return parts[0]
 
     for part in range(1, len(parts) - 1):
         name = f'{name} {parts[part]}'
@@ -105,6 +105,9 @@ def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
     See strip_namespace for more information."""
 
     new_dict = {}
+
+    if not attrib:
+        return new_dict
 
     for key in attrib.keys():
         new_dict[strip_namespace(key)] = attrib[key]
