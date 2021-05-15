@@ -5,10 +5,11 @@
 # - Use Gtk.Application, Gtk.ApplicationWindow
 
 import json, mimetypes, os, os.path, random, sys, time
+from xml.etree.ElementTree import Element
 
 from epubmangler import (
     EPub,
-    IMAGE_TYPES, VERSION, TIME_FORMAT, WEBSITE, XPATHS,
+    IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS,
     is_epub, strip_namespace, strip_namespaces
 )
 
@@ -127,16 +128,29 @@ def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
     dialog.destroy()
 
 
+def add_or_set(entry: Gtk.Entry, field: str, book: EPub) -> None:
+    if book.has_element(field):
+        book.set(field, entry.get_text())
+    else:
+        book.add(field, entry.get_text())
+
+
 def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
-    if tag_entry.get_text() and text_entry.get_text():
+    if tag_entry.get_text() and text_entry.get_text() and tag_entry.get_text() in XPATHS:
+
         # Column 3 (attrib) is a dict stored as a string in the GtkListStore
         try:
-            attribs = json.loads(attrib_entry.get_text())
+            attrib = json.loads(attrib_entry.get_text())
         except json.JSONDecodeError:
-            attribs = {}
+            attrib = {}
 
-        book.add(tag_entry.get_text(), text_entry.get_text(), attribs)
+        # Use Elementtree to create the new tag, this allows us to create ones not in the specs.
+        element = Element(tag_entry.get_text())
+        element.text = text_entry.get_text()
+        element.attrib = attrib
+        book.etree.find('./opf:metadata', NAMESPACES).append(element)
+
         model.append([tag_entry.get_text(), text_entry.get_text(), attrib_entry.get_text()])
         tag_entry.set_text('')
         text_entry.set_text('')
@@ -149,11 +163,11 @@ def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, boo
     # Column 3 (attrib) is a dict stored as a string in the GtkListStore
     if iter:
         try:
-            attribs = json.loads(model.get_value(iter, 2))
+            attrib = json.loads(model.get_value(iter, 2))
         except json.JSONDecodeError:
-            attribs = {}
+            attrib = {}
 
-        book.remove(model.get_value(iter, 0), attribs)
+        book.remove(model.get_value(iter, 0), attrib)
         model.remove(iter)
 
 
@@ -181,11 +195,12 @@ def cell_edited(_c: Gtk.CellRendererText,
     model[path][col] = new_text
     # Column 3 (attrib) is a dict stored as a string in the GtkListStore
     try:
-        attribs = json.loads(model[path][2])
+        attrib = model[path][2].replace("'", '"')
+        attrib = json.loads(attrib)
     except json.JSONDecodeError:
-        attribs = {}
-
-    book.set(model[path][0], model[path][1], attribs)
+        attrib = {}
+    
+    book.set(model[path][0], model[path][1], attrib)
 
 
 def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
@@ -196,7 +211,8 @@ def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
                        Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
     if dialog.run() == Gtk.ResponseType.OK:
-        book.save(dialog.get_filename())
+        book.save(dialog.get_filename(), overwrite=True)
+        book.modified = False
 
     dialog.destroy()
 
@@ -215,6 +231,7 @@ def warnings_toggle(button: Gtk.ModelButton, builder: Gtk.Builder, book: EPub) -
     builder.get_object('infobar').set_visible(current)
     # TODO: Save this setting?
     # This should also hide the save unchanged dialog
+
 
 def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
     selected = chooser.get_preview_filename()
@@ -386,8 +403,7 @@ if __name__ == '__main__':
         cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
 
     # Complete tags from the XPATHS dict
-    for key in XPATHS.keys():
-        tag_model.append([key])
+    [tag_model.append([key]) for key in XPATHS.keys()]
 
     tag_completion = Gtk.EntryCompletion()
     tag_completion.set_model(tag_model)
@@ -398,12 +414,12 @@ if __name__ == '__main__':
     for field in ('title', 'creator', 'publisher', 'language'):
         try:
             builder.get_object(field).set_text(book.get(field).text)
-        except NameError:
-            pass
 
-        builder.get_object(field).connect('changed', lambda entry, book, field:
-                                          book.set(field, entry.get_text()),
-                                          book, field)
+            builder.get_object(field).connect('changed', lambda entry, book, field:
+                                              book.set(field, entry.get_text()),
+                                              book, field)
+        except NameError:
+            builder.get_object(field).connect('changed', add_or_set, field, book)
 
     # Date and calendar
     try:
