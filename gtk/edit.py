@@ -80,6 +80,8 @@ def sync_fields(book: EPub, builder: Gtk.Builder, subjects: Gtk.ListStore,
 
     [subjects.append([subject.text]) for subject in book.get_all('subject')]
 
+    details.append(['version', book.version, ''])
+
     for meta in book.metadata:
         if strip_namespace(meta.tag) != 'description':
             details.append([strip_namespace(meta.tag), meta.text,
@@ -135,6 +137,43 @@ def add_or_set(entry: Gtk.Entry, field: str, book: EPub) -> None:
         book.add(field, entry.get_text())
 
 
+def add_or_set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
+                     cover: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
+    dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
+                                   action=Gtk.FileChooserAction.OPEN)
+    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                       Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+
+    preview = Gtk.Image()
+    dialog.set_preview_widget(preview)
+    dialog.set_use_preview_label(False)
+    dialog.connect('update-preview', update_preview, preview)
+
+    img_filter = Gtk.FileFilter()
+    img_filter.add_mime_type('image/*')
+    img_filter.set_name('Image files')
+    dialog.add_filter(img_filter)
+
+    all_filter = Gtk.FileFilter()
+    all_filter.add_pattern('*')
+    all_filter.set_name('All files')
+    dialog.add_filter(all_filter)
+
+    if dialog.run() == Gtk.ResponseType.OK:
+        filename = dialog.get_filename()
+
+        if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
+            if book.has_element('cover'):
+                book.set_cover(filename)
+            else:
+                book.add_cover(filename)
+
+            window.connect('size-allocate', lambda _win, allocation:
+                           cover.set_from_pixbuf(scale_cover(filename, allocation)))
+
+    dialog.destroy()
+
+
 def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
                 tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
     if tag_entry.get_text() and text_entry.get_text() and tag_entry.get_text() in XPATHS:
@@ -167,8 +206,8 @@ def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, boo
         except json.JSONDecodeError:
             attrib = {}
 
-        book.remove(model.get_value(iter, 0), attrib)
         model.remove(iter)
+        book.remove(model.get_value(iter, 0), attrib)
 
 
 def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
@@ -199,7 +238,7 @@ def cell_edited(_c: Gtk.CellRendererText,
         attrib = json.loads(attrib)
     except json.JSONDecodeError:
         attrib = {}
-    
+
     book.set(model[path][0], model[path][1], attrib)
 
 
@@ -241,39 +280,6 @@ def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
         chooser.set_preview_widget_active(True)
     else:
         chooser.set_preview_widget_active(False)
-
-
-def set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
-              cover: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
-    dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
-                                   action=Gtk.FileChooserAction.OPEN)
-    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                       Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-
-    preview = Gtk.Image()
-    dialog.set_preview_widget(preview)
-    dialog.set_use_preview_label(False)
-    dialog.connect('update-preview', update_preview, preview)
-
-    img_filter = Gtk.FileFilter()
-    img_filter.add_mime_type('image/*')
-    img_filter.set_name('Image files')
-    dialog.add_filter(img_filter)
-
-    all_filter = Gtk.FileFilter()
-    all_filter.add_pattern('*')
-    all_filter.set_name('All files')
-    dialog.add_filter(all_filter)
-
-    if dialog.run() == Gtk.ResponseType.OK:
-        filename = dialog.get_filename()
-
-        if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
-            book.set_cover(filename)
-            window.connect('size-allocate', lambda _win, allocation:
-                           cover.set_from_pixbuf(scale_cover(filename, allocation)))
-
-    dialog.destroy()
 
 
 def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, icon: Gtk.Image) -> None:
@@ -371,7 +377,7 @@ if __name__ == '__main__':
     calendar.connect('day-selected', edit_date, date_entry, calendar_image)
     subject_entry.connect('activate', add_subject, subjects_model, popover_entry, book)
     remove_button.connect('clicked', remove_subject, subjects_model, subject_view, book)
-    cover_button.connect('button-press-event', set_cover, cover, window, book)
+    cover_button.connect('button-press-event', add_or_set_cover, cover, window, book)
     remove_element_button.connect('clicked', remove_element, details_model, details, book)
     popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
                                tag_entry, text_entry, attrib_entry)
@@ -469,11 +475,6 @@ if __name__ == '__main__':
         description.set_buffer(buffer)
 
     # Details view
-    for meta in book.metadata:
-        if strip_namespace(meta.tag) != 'description':
-            details_model.append([strip_namespace(meta.tag), meta.text,
-                                 str(strip_namespaces(meta.attrib))])
-
     details.set_model(details_model)
 
     cell = Gtk.CellRendererText()
