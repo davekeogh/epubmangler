@@ -133,29 +133,47 @@ class EPub:
         """Adds a cover element and the required additional metadata."""
 
         if self.has_element('cover'):
-            raise NameError(f"{os.path.basename(self.file)} already has a cover. Use set_cover \
-                            if you want to change it")
+            raise RuntimeError(f"{os.path.basename(self.file)} already has a cover. Use \
+                               set_cover if you want to change it")
 
-        if self.version == '2.0':
-            ...
-        elif self.version == '3.0':
-            ...
+        mime = mimetypes.guess_type(path)[0]
+
+        if mime not in IMAGE_TYPES or not os.path.exists(path):
+            raise ValueError(f"{os.path.basename(self.file)} is not a valid image file.")
+
+        based = os.path.split(self.opf)[0]
+        filename = os.path.join(based, f'cover{os.path.splitext(path)[1]}')
+        shutil.copy(path, filename)
+
+        metadata_element = ET.Element('meta')
+        manifest_element = ET.Element('item')
+
+        if self.version == '3.0':
+            metadata_element.attrib = {'name': 'cover', 'content': 'cover-image'}
+            manifest_element.attrib = {'id': 'cover-image', 'properties': 'cover-image',
+                                       'href': os.path.basename(filename), 'media-type': mime}
+        else:
+            metadata_element.attrib = {'name': 'cover', 'content': 'cover'}
+            manifest_element.attrib = {'id': 'cover', 'href': os.path.basename(filename),
+                                       'media-type': mime}
+
+        self.etree.find('./opf:metadata', NAMESPACES).append(metadata_element)
+        self.etree.find('./opf:manifest', NAMESPACES).append(manifest_element)
+        self.modified = True
 
 
-    def add_subject(self, name: str) -> bool:
-        """Adds a subject to the tree. This will return False if the subject already exists."""
+    def add_subject(self, name: str) -> None:
+        """Adds a subject to the tree. This will do nothing if the subject already exists."""
 
         for subject in self.get_all('subject'):
             if subject.text == name:
-                return False
+                return
 
         element = ET.Element(namespaced_text('dc:subject'))
         element.text = name
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
         self.modified = True
-
-        return True
 
 
     def get(self, name: str) -> ET.Element:
@@ -209,10 +227,11 @@ class EPub:
 
         `./opf:metadata/opf:meta/[@name="cover"]` gives us an element with an `content` attrib
 
-        `./opf:manifest/opf:item/[@id=content]` gives us an element with a `href` element that points to
-        the cover file, the `media-type` attrib also needs to be set if the file type changed."""
+        `./opf:manifest/opf:item/[@id=content]` gives us an element with a `href` element that
+        points to the cover file."""
 
         cover_file = None
+        based = os.path.split(self.opf)[0]
 
         # Some epubs found in the wild, that have been edited(?), have an extra <meta name="cover">
         # element leftover. We look at all of them until we find a matching item in the manifest.
@@ -224,7 +243,6 @@ class EPub:
                     try:
                         name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id}\"]",
                                                          NAMESPACES).attrib['href']
-                        based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
 
                         return os.path.join(based, name)
 
@@ -238,23 +256,20 @@ class EPub:
             try:
                 cover_xpath = "./opf:manifest/opf:item/[@properties=\"cover-image\"]"
                 name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
-                based = os.path.split(find_opf_files(self.tempdir.name)[0])[0]
 
                 return os.path.join(based, name)
 
             except AttributeError:
                 return None
 
-
-        if self.version == '2.0':
-            cover_file = epub2()
-
-        elif self.version == '3.0':
+        if self.version == '3.0':
             cover_file = epub3()
 
-            # Some books still define the cover the old way
-            if not cover_file:
+            if not cover_file:  # Some books still define the cover the old way
                 cover_file = epub2()
+
+        else:
+            cover_file = epub2()
 
         return cover_file
 
@@ -262,10 +277,7 @@ class EPub:
     def has_element(self, name: str) -> bool:
         """Returns True if the EPub has a matching element. Otheriwse, returns False."""
 
-        if self.get_all(name):
-            return True
-        else:
-            return False
+        return bool(self.get_all(name))
 
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
@@ -347,7 +359,7 @@ class EPub:
 
         element.text = name
 
-        if not scheme: # TODO: Improve this detection
+        if not scheme:  # TODO: Improve this detection
             if name.startswith('http'):
                 scheme = 'URI'
             elif name.startswith('doi:'):
@@ -379,7 +391,7 @@ class EPub:
 
         self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
 
-        name = os.path.join(self.tempdir.name, find_opf_files(self.tempdir.name)[0])
+        name = os.path.join(self.tempdir.name, self.opf)
         self.etree.write(name, xml_declaration=True, encoding='utf-8', method='xml')
 
         # Work around an old issue in ElementTree:
@@ -405,3 +417,5 @@ class EPub:
                 for name in files:
                     full_path = os.path.join(root, name)
                     zip_file.write(full_path, os.path.relpath(full_path, self.tempdir.name))
+
+        self.modified = False
