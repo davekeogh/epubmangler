@@ -167,9 +167,8 @@ def add_or_set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
                 book.set_cover(filename)
             else:
                 book.add_cover(filename)
-
-            window.connect('size-allocate', lambda _win, allocation:
-                           cover.set_from_pixbuf(scale_cover(filename, allocation)))
+                window.connect('size-allocate', lambda _win, allocation:
+                               cover.set_from_pixbuf(scale_cover(filename, allocation)))
 
     dialog.destroy()
 
@@ -475,6 +474,7 @@ if __name__ == '__main__':
         description.set_buffer(buffer)
 
     # Details view
+    details_model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
     details.set_model(details_model)
 
     cell = Gtk.CellRendererText()
@@ -483,6 +483,7 @@ if __name__ == '__main__':
 
     column = Gtk.TreeViewColumn('Tag', cell, text=0)
     column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+    column.set_sort_column_id(0)
     details.append_column(column)
 
     cell = Gtk.CellRendererText()
@@ -492,6 +493,7 @@ if __name__ == '__main__':
     column = Gtk.TreeViewColumn('Text', cell, text=1)
     column.set_min_width(details.get_allocation().width * 0.6)
     column.set_expand(True)
+    column.set_sort_column_id(1)
     details.append_column(column)
 
     cell = Gtk.CellRendererText()
