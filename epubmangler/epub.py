@@ -373,6 +373,33 @@ class EPub:
         self.modified = True
 
 
+    def save_opf(self, path: str = None) -> None:
+        """Serializes the `ElementTree` object to `path` or `self.opf` if no path is specified."""
+
+        if not path:
+            path = self.opf
+
+        self.etree.write(path, xml_declaration=True, encoding='utf-8', method='xml')
+
+        # Work around an old issue in ElementTree:
+        # ElementTree incorrectly refuses to write attributes without namespaces
+        # when default_namespace is used
+        # https://bugs.python.org/issue17088
+        # https://github.com/python/cpython/pull/11050
+
+        with open(path, 'r') as f:
+            text = f.read()
+
+        text = text.replace('ns0:', '')
+        text = text.replace(':ns0', ':opf')
+        text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
+
+        # TODO: Tidy XML before saving?
+        # ElementTree has an indent function in Python 3.9, use that?
+        with open(path, 'w') as opf:
+            opf.write(text)
+
+
     def save(self, path: str, overwrite: bool = False) -> None:
         """Saves the opened EPub with the modified metadata to the file specified in `path`.
         If you want to overwrite an existing file set `overwrite=True`."""
@@ -390,27 +417,7 @@ class EPub:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
         self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
-
-        name = os.path.join(self.tempdir.name, self.opf)
-        self.etree.write(name, xml_declaration=True, encoding='utf-8', method='xml')
-
-        # Work around an old issue in ElementTree:
-        # ElementTree incorrectly refuses to write attributes without namespaces
-        # when default_namespace is used
-        # https://bugs.python.org/issue17088
-        # https://github.com/python/cpython/pull/11050
-
-        with open(name, 'r') as f:
-            text = f.read()
-
-        text = text.replace('ns0:', '')
-        text = text.replace(':ns0', ':opf')
-        text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
-
-        # TODO: Tidy XML before saving?
-        # ElementTree has an indent function in Python 3.9, use that?
-        with open(name, 'w') as opf:
-            opf.write(text)
+        self.save_opf()
 
         with ZipFile(path, 'w', ZIP_DEFLATED) as zip_file:
             for root, _dirs, files in os.walk(self.tempdir.name):
