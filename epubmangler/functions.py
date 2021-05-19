@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
-from .globals import NAMESPACES
+from .globals import ILLEGAL_CHARS, NAMESPACES
 
 
 def file_as(name: str) -> str:
@@ -113,3 +113,14 @@ def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
         new_dict[strip_namespace(key)] = attrib[key]
 
     return new_dict
+
+
+def strip_illegal_chars(path: str, replace: str = '-') -> str:
+    """Removes any characters from `path` that may cause file system errors on some cases."""
+
+    dirname, basename = os.path.split(path)
+
+    for char in ILLEGAL_CHARS:
+        basename.replace(char, replace)
+
+    return os.path.join(dirname, basename)

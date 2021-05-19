@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
-import gi
 import json
 import mimetypes
 import os
@@ -11,12 +10,10 @@ import time
 
 from xml.etree.ElementTree import Element
 
-from epubmangler import (
-    EPub,
-    IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS,
-    strip_namespace, strip_namespaces
-)
+from epubmangler import (EPub, strip_namespace, strip_namespaces,
+                         IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS)
 
+import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango

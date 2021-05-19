@@ -27,8 +27,9 @@ from types import TracebackType
 from typing import Dict, List, Optional, Type
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .globals import XPATHS, ILLEGAL_CHARS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
-from .functions import file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces
+from .functions import (file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces,
+                        strip_illegal_chars)
+from .globals import XPATHS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
 
 
 class EPub:
@@ -379,6 +380,8 @@ class EPub:
         if not path:
             path = self.opf
 
+        path = strip_illegal_chars(path)
+
         self.etree.write(path, xml_declaration=True, encoding='utf-8', method='xml')
 
         # Work around an old issue in ElementTree:
@@ -404,14 +407,7 @@ class EPub:
         """Saves the opened EPub with the modified metadata to the file specified in `path`.
         If you want to overwrite an existing file set `overwrite=True`."""
 
-        # Remove some characters that could cause file system errors
-        # This is mostly useful if you rename a file to the book title etc.
-        dirname, basename = os.path.split(path)
-
-        for char in ILLEGAL_CHARS:
-            basename.replace(char, '-')
-
-        path = os.path.join(dirname, basename)
+        path = strip_illegal_chars(path)
 
         if os.path.exists(path) and not overwrite:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
