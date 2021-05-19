@@ -843,7 +843,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton" id="details_edit_button">
+                  <object class="GtkButton" id="edit_button">
                     <property name="label" translatable="yes">Edit XML</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>

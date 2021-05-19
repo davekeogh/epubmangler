@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
-# TODO:
-# - Use Gtk.Application, Gtk.ApplicationWindow
+import gi
+import json
+import mimetypes
+import os
+import os.path
+import sys
+import time
 
-import json, mimetypes, os, os.path, random, sys, time
 from xml.etree.ElementTree import Element
 
 from epubmangler import (
     EPub,
     IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS,
-    is_epub, strip_namespace, strip_namespaces
+    strip_namespace, strip_namespaces
 )
 
-import gi
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
 
 # TODO: This needs to get set during install
 RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
@@ -24,490 +27,438 @@ BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
 ICON = os.path.join(RESOURCE_DIR, 'epubmangler.svg')
 
 
-def scale_cover(file: str, rect: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
-    return GdkPixbuf.Pixbuf.new_from_file_at_size(file, (rect.width * 0.3), (rect.height * 0.9))
+class Application:
 
+    book: EPub
+    builder: Gtk.Builder = Gtk.Builder.new_from_file(BUILDER)
+    details: Gtk.ListStore = Gtk.ListStore(str, str, str)
+    subjects: Gtk.ListStore = Gtk.ListStore(str)
+    tags: Gtk.Window = Gtk.ListStore(str)
+    warnings: bool = True
 
-def volume_monitor_idle(book: EPub, button: Gtk.Button) -> bool:
-    # Look for connected AND mounted ebook readers
-    for drive in Gio.VolumeMonitor.get().get_connected_drives():
-        if drive.get_name() == 'Kindle Internal Storage':
+    def __init__(self, filename: str) -> None:
+        self.book = EPub(filename)
+        self.get = self.builder.get_object
+        self.window = self.get('window')
+
+        # Signal connection
+        self.window.connect('delete-event', self.quit)
+        self.get('quit_button').connect('clicked', self.quit)
+        self.get('about_button').connect('clicked', self.about)
+        self.get('save_button').connect('clicked', self.save)
+        self.get('warnings_button').connect('clicked', self.toggle_warnings)
+        self.get('details_button').connect('clicked', self.toggle_details)
+        self.get('calendar').connect('day-selected', self.edit_date)
+        self.get('subject_entry').connect('activate', self.add_subject)
+        self.get('remove_button').connect('clicked', self.remove_subject)
+        self.get('cover_button').connect('button-press-event', self.add_or_set_cover)
+        self.get('details_remove_button').connect('clicked', self.remove_element)
+        self.get('popover_add_button').connect('clicked', self.add_element)
+        self.get('popover_clear_button').connect('clicked', self.clear_popover)
+        self.get('infobar').connect('response', lambda infobar, _response: infobar.destroy())
+        self.get('details_add_button').connect('clicked', lambda _b:
+                                               self.get('tag_entry').grab_focus())
+        self.get('subjects').connect('cursor-changed', lambda view, button:
+                                     button.set_sensitive((view.get_cursor().path is not None)),
+                                     self.get('remove_button'))
+        self.get('details').connect('cursor-changed', lambda view, button:
+                                    button.set_sensitive((view.get_cursor().path is not None)),
+                                    self.get('details_remove_button'))
+        self.get('help_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                        f'{WEBSITE}/blob/main/gtk/README.md', Gdk.CURRENT_TIME))
+        self.get('edit_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                        f'file://{self.book.opf}', Gdk.CURRENT_TIME))
+        self.get('folder_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                          f'file://{self.book.tempdir.name}', Gdk.CURRENT_TIME))
+
+        GLib.idle_add(self.volume_monitor_idle)
+        GLib.idle_add(self.book_modified_idle)
+
+        # Subjects list
+        self.get('subjects').set_model(self.subjects)
+        self.get('subjects').append_column(Gtk.TreeViewColumn('Subjects',
+                                           Gtk.CellRendererText(), text=0))
+
+        # Description
+        try:
+            description_text = self.book.get('description').text
+        except NameError:
+            description_text = None
+
+        if description_text:
+            buffer = Gtk.TextBuffer()
+            buffer.set_text(description_text)
+            buffer.connect('changed', lambda buffer, book:
+                           self.book.set('description',
+                                         buffer.get_text(buffer.get_start_iter(),
+                                                         buffer.get_end_iter(),
+                                                         True)), self.book)
+            self.get('description').set_buffer(buffer)
+
+        # Details view
+        self.details.set_sort_column_id(0, Gtk.SortType.ASCENDING)
+        self.get('details').set_model(self.details)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        cell.connect('edited', self.cell_edited, 0)
+
+        column = Gtk.TreeViewColumn('Tag', cell, text=0)
+        column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+        column.set_sort_column_id(0)
+        self.get('details').append_column(column)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        cell.connect('edited', self.cell_edited, 1)
+
+        column = Gtk.TreeViewColumn('Text', cell, text=1)
+        column.set_min_width(self.get('details').get_allocation().width * 0.6)
+        column.set_sort_column_id(1)
+        self.get('details').append_column(column)
+
+        cell = Gtk.CellRendererText()
+        cell.set_property('editable', True)
+        cell.set_property('ellipsize', Pango.EllipsizeMode.END)
+        cell.connect('edited', self.cell_edited, 2)
+
+        column = Gtk.TreeViewColumn('Attributes', cell, text=2)
+        column.set_expand(True)
+        self.get('details').append_column(column)
+
+        # Complete tags from the XPATHS dict
+        [self.tags.append([key]) for key in XPATHS.keys()]
+        tag_completion = Gtk.EntryCompletion()
+        tag_completion.set_model(self.tags)
+        tag_completion.set_text_column(0)
+        self.get('tag_entry').set_completion(tag_completion)
+
+        # Finalize window
+        self.set_cover_image()
+        self.update_widgets()
+        self.get('title_label').set_text(os.path.basename(self.book.file))
+        self.window.set_title(os.path.basename(self.book.file))
+        self.window.set_icon_from_file(ICON)
+        self.window.show()
+
+    def set_cover_image(self, path: str = None) -> None:
+        if not path:
+            path = self.book.get_cover()
+
+        def scale_cover(file: str, rect: Gdk.Rectangle) -> GdkPixbuf.Pixbuf:
+            return GdkPixbuf.Pixbuf.new_from_file_at_size(file, (rect.width * 0.3),
+                                                          (rect.height * 0.9))
+
+        if path and os.path.exists(path):
+            self.window.connect('size-allocate', lambda _win, allocation:
+                                self.get('cover').set_from_pixbuf(scale_cover(path, allocation)))
+        else:
+            self.get('cover').set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
+
+    def update_widgets(self) -> None:
+
+        self.subjects.clear()
+        self.details.clear()
+
+        for field in ('title', 'creator', 'publisher', 'language'):
             try:
-                mount = drive.get_volumes()[0].get_mount()
-            except IndexError:  # Not mounted
-                button.hide()
+                self.get(field).set_text(self.book.get(field).text)
+            except NameError:
+                ...
+
+            self.get(field).connect('changed', self.add_or_set_field, field)
+
+        # Date and calendar
+        try:
+            date = self.book.get('date').text
+        except NameError:
+            date = time.strftime(TIME_FORMAT)
+
+        my_time = None
+
+        for format_string in (TIME_FORMAT, '%Y-%m-%d', '%Y'):
+            try:
+                my_time = time.strptime(date, format_string)
                 break
+            except ValueError:
+                pass
 
-            if mount:
-                root = os.path.join(mount.get_root().get_path(), 'documents')
+        if my_time:
+            # GtkCalendar uses 0-11 for month
+            self.get('calendar').select_month(int(my_time.tm_mon) - 1, my_time.tm_year)
+            self.get('calendar').select_day(my_time.tm_mday)
 
-                if os.path.exists(root):
-                    button.connect('clicked', send_book, book, root)
-                    button.set_label('Send to Kindle')
-                    button.show()
-            else:
-                button.hide()
+            self.get('date').connect('changed', lambda entry:
+                                     self.book.set('date', self.get('date').get_text()))
 
-    return GLib.SOURCE_CONTINUE
+            try:
+                icon_name = f'calendar-{my_time.tm_mday:02}'
+            except AttributeError:
+                icon_name = 'calendar'
 
+            if Gtk.IconTheme.get_default().has_icon(icon_name):
+                self.get('calendar_image').set_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
 
-def file_modified_idle(book: EPub, button: Gtk.Button) -> bool:
-    if book.modified:
-        button.get_style_context().add_class('suggested-action')
+        # Update liststores
+        [self.subjects.append([sub.text]) for sub in self.book.get_all('subject')]
 
-        return GLib.SOURCE_REMOVE
-    else:
+        self.details.append(['version', self.book.version, ''])
+
+        for meta in self.book.metadata:
+            if strip_namespace(meta.tag) != 'description':
+                self.details.append([strip_namespace(meta.tag), meta.text,
+                                    str(strip_namespaces(meta.attrib))])
+
+    # IDLE FUNCTIONS
+    def volume_monitor_idle(self) -> bool:
+        button = self.get('device_button')
+
+        # Look for connected AND mounted ebook readers
+        for drive in Gio.VolumeMonitor.get().get_connected_drives():
+
+            if drive.get_name() == 'Kindle Internal Storage':
+                try:
+                    mount = drive.get_volumes()[0].get_mount()
+                except IndexError:  # Not mounted
+                    button.hide()
+                    break
+
+                if mount:
+                    root = os.path.join(mount.get_root().get_path(), 'documents')
+
+                    if os.path.exists(root):
+                        button.connect('clicked', self.send_book)
+                        button.set_label('Send to Kindle')
+                        button.show()
+                else:
+                    button.hide()
+
         return GLib.SOURCE_CONTINUE
 
+    def book_modified_idle(self) -> bool:
+        if self.book.modified:
+            self.get('save_button').get_style_context().add_class('suggested-action')
+            return GLib.SOURCE_REMOVE
+        else:
+            return GLib.SOURCE_CONTINUE
 
-def sync_fields(book: EPub, builder: Gtk.Builder, subjects: Gtk.ListStore,
-                details: Gtk.ListStore) -> None:
-    subjects.clear()
-    details.clear()
+    # SIGNAL CALLBACKS
+    def about(self, _button: Gtk.ModelButton) -> None:
+        dialog = Gtk.AboutDialog()
+        dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
+        dialog.set_program_name('EPub Mangler')
+        dialog.set_version(VERSION)
+        dialog.set_copyright('Copyright © 2020-2021 David Keogh')
+        dialog.set_license_type(Gtk.License.GPL_3_0)
+        dialog.set_authors(['David Keogh <davidtkeogh@gmail.com>'])
+        dialog.set_website(WEBSITE)
+        dialog.set_transient_for(self.window)
+        dialog.run()
+        dialog.destroy()
 
-    for field in ('title', 'creator', 'publisher', 'language'):
-        try:
-            builder.get_object(field).set_text(book.get(field).text)
-        except NameError:
-            pass
+    def add_element(self, _button: Gtk.Button) -> None:
+        if self.get('tag_entry').get_text() and self.get('text_entry').get_text():
 
-    try:
-        date = book.get('date').text
-    except NameError:
-        date = time.strftime(TIME_FORMAT)
+            try:  # Column 3 (attrib) is stored as a string
+                attrib = json.loads(self.get('attrib_entry').get_text())
+            except json.JSONDecodeError:
+                attrib = {}
 
-    builder.get_object('date').set_text(date.split('T')[0])
+            element = Element(self.get('tag_entry').get_text())
+            element.text = self.get('text_entry').get_text()
+            element.attrib = attrib
 
-    [subjects.append([subject.text]) for subject in book.get_all('subject')]
+            self.book.etree.find('./opf:metadata', NAMESPACES).append(element)
+            self.details.append([self.get('tag_entry').get_text(),
+                                self.get('text_entry').get_text(),
+                                self.get('attrib_entry').get_text()])
+            self.get('tag_entry').set_text('')
+            self.get('text_entry').set_text('')
+            self.get('attrib_entry').set_text('')
+            self.get('popoveradd').popdown()
 
-    details.append(['version', book.version, ''])
+    def add_or_set_field(self, entry: Gtk.Entry, field: str) -> None:
+        if self.book.has_element(field):
+            self.book.set(field, entry.get_text())
+        else:
+            self.book.add(field, entry.get_text())
 
-    for meta in book.metadata:
-        if strip_namespace(meta.tag) != 'description':
-            details.append([strip_namespace(meta.tag), meta.text,
-                           str(strip_namespaces(meta.attrib))])
+    def add_or_set_cover(self, _eb: Gtk.EventBox, _ev: Gdk.Event) -> None:
+        dialog = Gtk.FileChooserDialog(title='Select an image', parent=self.window,
+                                       action=Gtk.FileChooserAction.OPEN)
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                           Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
 
+        def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
+            selected = chooser.get_preview_filename()
 
-# Signal callbacks:
+            if selected and mimetypes.guess_type(selected)[0] in IMAGE_TYPES:
+                image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(selected, 256, 256))
+                chooser.set_preview_widget_active(True)
+            else:
+                chooser.set_preview_widget_active(False)
 
-def quit_confirm_unsaved(_caller: Gtk.Widget, window: Gtk.Window, book: EPub) -> None:
-    if book.modified:
-        dialog = Gtk.MessageDialog(text='File has unsaved changes',
-                                   message_type=Gtk.MessageType.QUESTION)
-        dialog.format_secondary_text('Do you want to save them?')
-        dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,
-                           Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        preview = Gtk.Image()
+        dialog.set_preview_widget(preview)
+        dialog.set_use_preview_label(False)
+        dialog.connect('update-preview', update_preview, preview)
+
+        img_filter = Gtk.FileFilter()
+        img_filter.add_mime_type('image/*')
+        img_filter.set_name('Image files')
+        dialog.add_filter(img_filter)
+
+        all_filter = Gtk.FileFilter()
+        all_filter.add_pattern('*')
+        all_filter.set_name('All files')
+        dialog.add_filter(all_filter)
 
         if dialog.run() == Gtk.ResponseType.OK:
-            chooser = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
-            chooser.set_current_name(os.path.basename(book.file))
-            chooser.set_do_overwrite_confirmation(True)
-            chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+            filename = dialog.get_filename()
 
-            if chooser.run() == Gtk.ResponseType.OK:
-                book.save(chooser.get_filename())
+            if self.book.has_element('cover'):
+                self.book.set_cover(filename)
+            else:
+                self.book.add_cover(filename)
 
-            chooser.destroy()
+            self.set_cover_image(filename)
 
         dialog.destroy()
 
-    Gtk.main_quit()
+    def add_subject(self, entry: Gtk.Entry) -> None:
+        new_subject = entry.get_text()
+        entry.set_text('')
+        self.get('popoverentry').popdown()
+        self.subjects.append([new_subject])
+        self.book.add_subject(new_subject)
 
+    def edit_date(self, calendar: Gtk.Calendar) -> None:
+        date = calendar.get_date()
+        month = date.month + 1  # GtkCalendar uses 0-11 for month
+        icon_name = f'calendar-{date.day:02}'
 
-def about(_b: Gtk.ModelButton, window: Gtk.Window) -> None:
-    dialog = Gtk.AboutDialog()
-    dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
-    dialog.set_program_name('EPub Mangler')
-    dialog.set_version(VERSION)
-    dialog.set_copyright('Copyright © 2020-2021 David Keogh')
-    dialog.set_license_type(Gtk.License.GPL_3_0)
-    dialog.set_authors(['David Keogh <davidtkeogh@gmail.com>'])
-    dialog.set_website(WEBSITE)
-    dialog.set_transient_for(window)
+        if Gtk.IconTheme.get_default().has_icon(icon_name):
+            self.get('calendar_image').set_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
 
-    dialog.run()
-    dialog.destroy()
+        self.get('date').set_text(f'{date.year}-{month:02}-{date.day:02}')
 
+    def cell_edited(self, _cr: Gtk.CellRendererText, path: str, new_text: str, col: int) -> None:
+        self.details[path][col] = new_text
 
-def add_or_set(entry: Gtk.Entry, field: str, book: EPub) -> None:
-    if book.has_element(field):
-        book.set(field, entry.get_text())
-    else:
-        book.add(field, entry.get_text())
-
-
-def add_or_set_cover(_eb: Gtk.EventBox, _ev: Gdk.Event,
-                     cover: Gtk.Image, window: Gtk.Window, book: EPub) -> None:
-    dialog = Gtk.FileChooserDialog(title='Select an image', parent=window,
-                                   action=Gtk.FileChooserAction.OPEN)
-    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                       Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-
-    preview = Gtk.Image()
-    dialog.set_preview_widget(preview)
-    dialog.set_use_preview_label(False)
-    dialog.connect('update-preview', update_preview, preview)
-
-    img_filter = Gtk.FileFilter()
-    img_filter.add_mime_type('image/*')
-    img_filter.set_name('Image files')
-    dialog.add_filter(img_filter)
-
-    all_filter = Gtk.FileFilter()
-    all_filter.add_pattern('*')
-    all_filter.set_name('All files')
-    dialog.add_filter(all_filter)
-
-    if dialog.run() == Gtk.ResponseType.OK:
-        filename = dialog.get_filename()
-
-        if mimetypes.guess_type(filename)[0] in IMAGE_TYPES:
-            if book.has_element('cover'):
-                book.set_cover(filename)
-            else:
-                book.add_cover(filename)
-                window.connect('size-allocate', lambda _win, allocation:
-                               cover.set_from_pixbuf(scale_cover(filename, allocation)))
-
-    dialog.destroy()
-
-
-def add_element(_b: Gtk.Button, popover: Gtk.Popover, model: Gtk.ListStore, book: EPub,
-                tag_entry: Gtk.Entry, text_entry: Gtk.Entry, attrib_entry: Gtk.Entry) -> None:
-    if tag_entry.get_text() and text_entry.get_text() and tag_entry.get_text() in XPATHS:
-
-        # Column 3 (attrib) is a dict stored as a string in the GtkListStore
         try:
-            attrib = json.loads(attrib_entry.get_text())
+            attrib = self.details[path][2].replace("'", '"')
+            attrib = json.loads(attrib)  # Column 3 (attrib) is stored as a string
         except json.JSONDecodeError:
             attrib = {}
 
-        # Use Elementtree to create the new tag, this allows us to create ones not in the specs.
-        element = Element(tag_entry.get_text())
-        element.text = text_entry.get_text()
-        element.attrib = attrib
-        book.etree.find('./opf:metadata', NAMESPACES).append(element)
+        self.book.set(self.details[path][0], self.details[path][1], attrib)
 
-        model.append([tag_entry.get_text(), text_entry.get_text(), attrib_entry.get_text()])
-        tag_entry.set_text('')
-        text_entry.set_text('')
-        attrib_entry.set_text('')
-        popover.popdown()
+    def clear_popover(self, _button: Gtk.Button) -> None:
+        [entry.set_text('') for entry in (self.get('tag_entry'),
+                                          self.get('text_entry'),
+                                          self.get('attrib_entry'))]
 
+    def remove_element(self, _button: Gtk.Button) -> None:
+        iter = self.get('details').get_selection().get_selected()[1]
 
-def remove_element(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
-    iter = view.get_selection().get_selected()[1]
-    # Column 3 (attrib) is a dict stored as a string in the GtkListStore
-    if iter:
-        try:
-            attrib = json.loads(model.get_value(iter, 2))
-        except json.JSONDecodeError:
-            attrib = {}
+        if iter:
+            try:  # Column 3 (attrib) is stored as a string
+                attrib = json.loads(self.details.get_value(iter, 2))
+            except json.JSONDecodeError:
+                attrib = {}
 
-        model.remove(iter)
-        book.remove(model.get_value(iter, 0), attrib)
+        self.details.remove(iter)
+        self.book.remove(self.details.get_value(iter, 0), attrib)
 
+    def remove_subject(self, _button: Gtk.Button) -> None:
+        iter = self.get('subjects').get_selection().get_selected()[1]
 
-def send_book(_b: Gtk.Button, book: EPub, device_path: str) -> None:
-    copy_to = os.path.join(device_path, os.path.basename(book.file))
+        if iter:
+            self.book.remove_subject(self.subjects.get_value(iter, 0))
+            self.subjects.remove(iter)
 
-    if not os.path.exists(copy_to):
-        book.save(copy_to)
-
-    else:
-        dialog = Gtk.MessageDialog(text='File already exists',
-                                   message_type=Gtk.MessageType.QUESTION)
-        dialog.format_secondary_text(f'Replace file "{os.path.basename(book.file)}"?')
+    def save(self, _b: Gtk.Button) -> None:
+        dialog = Gtk.FileChooserDialog(parent=self.window, action=Gtk.FileChooserAction.SAVE)
+        dialog.set_current_name(os.path.basename(self.book.file))
+        dialog.set_do_overwrite_confirmation(True)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
         if dialog.run() == Gtk.ResponseType.OK:
-            book.save(copy_to, overwrite=True)
+            self.book.save(dialog.get_filename(), overwrite=True)
+            self.book.modified = False
 
         dialog.destroy()
 
+    def send_book(self, _button: Gtk.Button, device_path: str) -> None:
+        copy_to = os.path.join(device_path, os.path.basename(self.book.file))
 
-def cell_edited(_c: Gtk.CellRendererText,
-                path: str, new_text: str, model: Gtk.ListStore, col: int, book: EPub) -> None:
-    model[path][col] = new_text
-    # Column 3 (attrib) is a dict stored as a string in the GtkListStore
-    try:
-        attrib = model[path][2].replace("'", '"')
-        attrib = json.loads(attrib)
-    except json.JSONDecodeError:
-        attrib = {}
+        if not os.path.exists(copy_to):
+            self.book.save(copy_to)
+        else:
+            dialog = Gtk.MessageDialog(text='File already exists',
+                                       message_type=Gtk.MessageType.QUESTION)
+            dialog.format_secondary_text(f'Replace file "{os.path.basename(self.book.file)}"?')
+            dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                               Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
-    book.set(model[path][0], model[path][1], attrib)
+            if dialog.run() == Gtk.ResponseType.OK:
+                self.book.save(copy_to, overwrite=True)
 
+            dialog.destroy()
 
-def save_file(_b: Gtk.Button, book: EPub, window: Gtk.Window) -> None:
-    dialog = Gtk.FileChooserDialog(parent=window, action=Gtk.FileChooserAction.SAVE)
-    dialog.set_current_name(os.path.basename(book.file))
-    dialog.set_do_overwrite_confirmation(True)
-    dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                       Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+    def toggle_details(self, button: Gtk.ToggleButton) -> None:
+        self.update_widgets()
+        self.get('details_area').set_visible(button.get_active())
+        self.get('main').set_visible(not button.get_active())
+        self.get('cover').set_visible(not button.get_active())
 
-    if dialog.run() == Gtk.ResponseType.OK:
-        book.save(dialog.get_filename(), overwrite=True)
-        book.modified = False
+    def toggle_warnings(self, button: Gtk.ModelButton) -> None:
+        current = button.get_property('active')
+        button.set_property('active', not current)
+        self.warnings = current
+        self.get('infobar').set_visible(current)
+        # TODO: Save this setting?
 
-    dialog.destroy()
+    def quit(self, _caller: Gtk.Widget, _event: Gdk.Event = None) -> None:
+        if self.book.modified and self.warnings:
+            dialog = Gtk.MessageDialog(text='File has unsaved changes',
+                                       message_type=Gtk.MessageType.QUESTION)
+            dialog.format_secondary_text('Do you want to save them?')
+            dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,
+                               Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
+            if dialog.run() == Gtk.ResponseType.OK:
+                chooser = Gtk.FileChooserDialog(parent=self.window,
+                                                action=Gtk.FileChooserAction.SAVE)
+                chooser.set_current_name(os.path.basename(self.book.file))
+                chooser.set_do_overwrite_confirmation(True)
+                chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
-def details_toggle(button: Gtk.ToggleButton, builder: Gtk.Builder, subjects: Gtk.ListStore,
-                   details: Gtk.ListStore, book: EPub) -> None:
-    sync_fields(book, builder, subjects, details)
-    builder.get_object('details_area').set_visible(button.get_active())
-    builder.get_object('main').set_visible(not button.get_active())
-    builder.get_object('cover').set_visible(not button.get_active())
+                if chooser.run() == Gtk.ResponseType.OK:
+                    self.book.save(chooser.get_filename())
 
+                chooser.destroy()
 
-def warnings_toggle(button: Gtk.ModelButton, builder: Gtk.Builder, book: EPub) -> None:
-    current = button.get_property('active')
-    button.set_property('active', not current)
-    builder.get_object('infobar').set_visible(current)
-    # TODO: Save this setting?
-    # This should also hide the save unchanged dialog
+            dialog.destroy()
 
-
-def update_preview(chooser: Gtk.FileChooserDialog, image: Gtk.Image) -> None:
-    selected = chooser.get_preview_filename()
-
-    if selected and mimetypes.guess_type(selected)[0] in IMAGE_TYPES:
-        image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(selected, 256, 256))
-        chooser.set_preview_widget_active(True)
-    else:
-        chooser.set_preview_widget_active(False)
-
-
-def edit_date(calendar: Gtk.Calendar, entry: Gtk.Entry, icon: Gtk.Image) -> None:
-    date = calendar.get_date()
-    month = date.month + 1  # GtkCalendar uses 0-11 for month
-    entry.set_text(f'{date.year}-{month:02}-{date.day:02}')
-
-    icon_name = f'calendar-{date.day:02}'
-
-    if Gtk.IconTheme.get_default().has_icon(icon_name):
-        icon.set_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
+        Gtk.main_quit()
 
 
-def add_subject(entry: Gtk.Entry, model: Gtk.ListStore, po: Gtk.Popover, book: EPub) -> None:
-    new_subject = entry.get_text()
-    model.append([new_subject])
-    book.add_subject(new_subject)
-    entry.set_text('')
-    po.popdown()
-
-
-def remove_subject(_b: Gtk.Button, model: Gtk.ListStore, view: Gtk.TreeView, book: EPub) -> None:
-    iter = view.get_selection().get_selected()[1]
-
-    if iter:
-        book.remove_subject(model.get_value(iter, 0))
-        model.remove(iter)
-
-
-# Entry point
 if __name__ == '__main__':
+    # Entry point
     if len(sys.argv) > 1:
-        if is_epub(sys.argv[1]):
-            book = EPub(sys.argv[1])
-        elif sys.argv[1] == 'test':
+        if sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
+            import random
             folder = '/home/david/Projects/epubmangler/books/calibre'
-            book = EPub(os.path.join(folder, random.choice(os.listdir(folder))))
+            filename = os.path.join(folder, random.choice(os.listdir(folder)))
         else:
-            raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
+            filename = os.path.abspath(sys.argv[1])
     else:
         raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
 
-    # Widgets
-    builder = Gtk.Builder.new_from_file(BUILDER)
-    window = builder.get_object('window')
-    title_label = builder.get_object('title_label')
-    device_button = builder.get_object('device_button')
-    save_button = builder.get_object('save_button')
-    details_button = builder.get_object('details_button')
-    menu_button = builder.get_object('menu_button')
-    cover = builder.get_object('cover')
-    cover_button = builder.get_object('cover_button')
-    calendar = builder.get_object('calendar')
-    date_entry = builder.get_object('date')
-    subject_view = builder.get_object('subjects')
-    subject_entry = builder.get_object('subject_entry')
-    remove_button = builder.get_object('remove_button')
-    calendar_image = builder.get_object('calendar_image')
-    description = builder.get_object('description')
-    details = builder.get_object('details')
-    add_element_button = builder.get_object('details_add_button')
-    remove_element_button = builder.get_object('details_remove_button')
-    edit_button = builder.get_object('details_edit_button')
-    fm_button = builder.get_object('folder_button')
-    infobar = builder.get_object('infobar')
-    popover_cal = builder.get_object('popovercalendar')
-    popover_entry = builder.get_object('popoverentry')
-    warnings_button = builder.get_object('warnings_button')
-    help_button = builder.get_object('help_button')
-    about_button = builder.get_object('about_button')
-    quit_button = builder.get_object('quit_button')
-    tag_entry = builder.get_object('tag_entry')
-    text_entry = builder.get_object('text_entry')
-    attrib_entry = builder.get_object('attrib_entry')
-    popover_add = builder.get_object('popoveradd')
-    popover_add_button = builder.get_object('popover_add_button')
-    popover_clear_button = builder.get_object('popover_clear_button')
-
-    subjects_model = Gtk.ListStore(str)
-    details_model = Gtk.ListStore(str, str, str)
-    tag_model = Gtk.ListStore(str)
-
-    GLib.idle_add(volume_monitor_idle, book, device_button)
-    GLib.idle_add(file_modified_idle, book, save_button)
-
-    # Signal connection
-    window.connect('destroy', quit_confirm_unsaved, window, book)
-    quit_button.connect('clicked', quit_confirm_unsaved, window, book)
-    about_button.connect('clicked', about, window)
-    save_button.connect('clicked', save_file, book, window)
-    warnings_button.connect('clicked', warnings_toggle, builder, book)
-    details_button.connect('toggled', details_toggle, builder, subjects_model, details_model, book)
-    calendar.connect('day-selected', edit_date, date_entry, calendar_image)
-    subject_entry.connect('activate', add_subject, subjects_model, popover_entry, book)
-    remove_button.connect('clicked', remove_subject, subjects_model, subject_view, book)
-    cover_button.connect('button-press-event', add_or_set_cover, cover, window, book)
-    remove_element_button.connect('clicked', remove_element, details_model, details, book)
-    popover_add_button.connect('clicked', add_element, popover_add, details_model, book,
-                               tag_entry, text_entry, attrib_entry)
-    infobar.connect('response', lambda infobar, _response: infobar.destroy())
-    date_entry.connect('icon-press', lambda _entry, _icon, _event, po: po.popup(), popover_cal)
-    add_element_button.connect('clicked', lambda _b, entry: entry.grab_focus(), tag_entry)
-    popover_clear_button.connect('clicked', lambda _b, tag, text, attrib:
-                                 [entry.set_text('') for entry in (tag, text, attrib)],
-                                 tag_entry, text_entry, attrib_entry)
-    subject_view.connect('cursor-changed', lambda view, button:
-                         button.set_sensitive((view.get_cursor().path is not None)), remove_button)
-    details.connect('cursor-changed', lambda view, button:
-                    button.set_sensitive((view.get_cursor().path is not None)),
-                    remove_element_button)
-    help_button.connect('clicked', lambda _b:
-                        Gtk.show_uri_on_window(window, f'{WEBSITE}/blob/main/gtk/README.md',
-                                               Gdk.CURRENT_TIME))
-    edit_button.connect('clicked', lambda _b:
-                        Gtk.show_uri_on_window(window, f'file://{book.opf}', Gdk.CURRENT_TIME))
-    fm_button.connect('clicked', lambda _b:
-                      Gtk.show_uri_on_window(window, f'file://{book.tempdir.name}',
-                                             Gdk.CURRENT_TIME))
-
-    # Cover image
-    if book.get_cover() and os.path.exists(book.get_cover()):
-        window.connect('size-allocate', lambda _win, allocation:
-                       cover.set_from_pixbuf(scale_cover(book.get_cover(), allocation)))
-    else:
-        cover.set_from_icon_name('image-missing', Gtk.IconSize.DIALOG)
-
-    # Complete tags from the XPATHS dict
-    [tag_model.append([key]) for key in XPATHS.keys()]
-
-    tag_completion = Gtk.EntryCompletion()
-    tag_completion.set_model(tag_model)
-    tag_completion.set_text_column(0)
-    tag_entry.set_completion(tag_completion)
-
-    # Populate fields
-    for field in ('title', 'creator', 'publisher', 'language'):
-        try:
-            builder.get_object(field).set_text(book.get(field).text)
-
-            builder.get_object(field).connect('changed', lambda entry, book, field:
-                                              book.set(field, entry.get_text()),
-                                              book, field)
-        except NameError:
-            builder.get_object(field).connect('changed', add_or_set, field, book)
-
-    # Date and calendar
-    try:
-        date = book.get('date').text
-    except NameError:
-        date = time.strftime(TIME_FORMAT)
-
-    my_time = None
-
-    for format_string in (TIME_FORMAT, '%Y-%m-%d', '%Y'):
-        try:
-            my_time = time.strptime(date, format_string)
-            break
-        except ValueError:
-            pass
-
-    if my_time:
-        # GtkCalendar uses 0-11 for month
-        calendar.select_month(int(my_time.tm_mon) - 1, my_time.tm_year)
-        calendar.select_day(my_time.tm_mday)
-
-    builder.get_object('date').set_text(date.split('T')[0])  # Hide the useless time information
-
-    builder.get_object('date').connect('changed', lambda entry, book:
-                                       book.set('date', entry.get_text()),
-                                       book)
-
-    # Subject tags
-    [subjects_model.append([subject.text]) for subject in book.get_all('subject')]
-    subject_view.set_model(subjects_model)
-    subject_view.append_column(Gtk.TreeViewColumn('Subjects', Gtk.CellRendererText(), text=0))
-
-    # Description
-    try:
-        description_text = book.get('description').text
-    except NameError:
-        description_text = None
-
-    if description_text:
-        buffer = Gtk.TextBuffer()
-        buffer.set_text(description_text)
-        buffer.connect('changed', lambda buffer, book:
-                       book.set('description', buffer.get_text(buffer.get_start_iter(),
-                                                               buffer.get_end_iter(), True)),
-                       book)
-
-        description.set_buffer(buffer)
-
-    # Details view
-    details_model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
-    details.set_model(details_model)
-
-    cell = Gtk.CellRendererText()
-    cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 0, book)
-
-    column = Gtk.TreeViewColumn('Tag', cell, text=0)
-    column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-    column.set_sort_column_id(0)
-    details.append_column(column)
-
-    cell = Gtk.CellRendererText()
-    cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 1, book)
-
-    column = Gtk.TreeViewColumn('Text', cell, text=1)
-    column.set_min_width(details.get_allocation().width * 0.6)
-    column.set_expand(True)
-    column.set_sort_column_id(1)
-    details.append_column(column)
-
-    cell = Gtk.CellRendererText()
-    cell.set_property('editable', True)
-    cell.connect('edited', cell_edited, details_model, 2, book)
-
-    column = Gtk.TreeViewColumn('Attributes', cell, text=2)
-    column.set_expand(True)
-    details.append_column(column)
-
-    # Window
-    title_label.set_text(os.path.basename(book.file))
-    window.set_title(os.path.basename(book.file))
-    window.set_icon_from_file(ICON)
-    window.show()
-
+    app = Application(filename)
     Gtk.main()
