@@ -406,9 +406,8 @@ class Application:
 
     def toggle_details(self, button: Gtk.ToggleButton) -> None:
         self.update_widgets()
-        self.get('details_area').set_visible(button.get_active())
-        self.get('main').set_visible(not button.get_active())
-        self.get('cover').set_visible(not button.get_active())
+        self.get('details_form').set_visible(button.get_active())
+        self.get('main_form').set_visible(not button.get_active())
 
     def toggle_warnings(self, button: Gtk.ModelButton) -> None:
         current = button.get_property('active')
