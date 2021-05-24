@@ -266,7 +266,10 @@ class EPub:
         else:
             cover_file = epub2()
 
-        return cover_file
+        if cover_file:
+            return str(cover_file)
+        else:
+            return None
 
 
     def has_element(self, name: str) -> bool:

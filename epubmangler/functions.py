@@ -85,11 +85,11 @@ def sizeof_format(number: int) -> str:
     """Returns a human readable, decimal prefixed string containing the file size of `number`."""
 
     for unit in ['','k','M','G','T','P','E','Z', 'Y']:
-        if abs(number) < 1000:
+        if number < 1000:
             return f'{number:.1f} {unit}B'
         number /= 1000
     else:
-        return f'{number:.1f}'
+        return f'{number:.1f} ?B'
 
 
 def strip_namespace(text: str) -> str:
