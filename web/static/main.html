@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+    <title>E P U B M A N G L E R</title>
+  </head>
+  <body>
+    <form action="/edit" method="POST">
+      <input type="file" />
+      <p>D R O P - E P U B - H E R E | O R - C L I C K</p>
+      <button type="submit">U P L O A D</button>
+    </form>
+    <script>
+      $(document).ready(function () {
+        $("form input").change(function () {
+          if (this.files.length) {
+            $("form p").text(this.files[0].name);
+          } else {
+            $("form p").text("D R O P - E P U B - H E R E | O R - C L I C K");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

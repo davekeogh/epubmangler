@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Test all EPub methods against a random book from Project Gutenberg."""
 
-import os, os.path, unittest, random
+import os, unittest, random
+
+from pathlib import Path
 
 import xml.etree.ElementTree as ET
 
@@ -11,13 +13,18 @@ import epubmangler
 DIR = 'books/gutenberg'
 # DIR = 'books/calibre'
 BOOKS = os.listdir(DIR)
-BOOK = os.path.join(DIR, random.choice(BOOKS))
+BOOK = Path(DIR, random.choice(BOOKS))
+FILENAME = 'testtesttest.epub'
 
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
     def setUp(self):
         self.book = epubmangler.EPub(BOOK)
+
+    def tearDown(self):
+        if Path(FILENAME).exists():
+            os.remove(FILENAME)
 
     def test_get(self):
         self.assertRaises(NameError, self.book.get, 'nothing')
@@ -30,14 +37,13 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             self.assertIsInstance(item, ET.Element)
 
     def test_get_cover(self):
-        self.assertTrue(os.path.exists(self.book.get_cover()))
+        self.assertTrue(Path(self.book.get_cover()).exists())
 
     def test_save(self):
-        name = 'testtesttest.epub'
-        self.book.save(name)
-        self.assertTrue(os.path.exists(name))
-        self.assertRaises(FileExistsError, self.book.save, name)
-        os.remove(name)
+        self.book.save(FILENAME)
+        self.assertTrue(Path(FILENAME).exists())
+        self.assertRaises(FileExistsError, self.book.save, FILENAME)
+        os.remove(FILENAME)
 
     def test_add(self):
         els = self.book.get_all('date')
@@ -104,5 +110,5 @@ class EPub2GutenbergTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    print(os.path.basename(BOOK))
+    print(Path(BOOK).name)
     unittest.main(verbosity=2)

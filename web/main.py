@@ -1,3 +1,5 @@
+"""A simple web application using epubmangler"""
+
 import os
 import pathlib
 
@@ -8,7 +10,7 @@ from epubmangler import EPub
 
 app = FastAPI()
 
-# TODO: Needs a backend to delete everything in upload after a while
+# TODO: Needs a backend to delete everything in /upload after a while
 
 
 @app.get("/")

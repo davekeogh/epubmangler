@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import mimetypes
 import os
-import os.path
 import shutil
 import time
 
 import xml.etree.ElementTree as ET
 
+from pathlib import Path
 from tempfile import TemporaryDirectory as TempDir
 from types import TracebackType
 from typing import Dict, List, Optional, Type
@@ -109,7 +109,7 @@ class EPub:
         try:
             for meta in self.get_all(name):
                 if strip_namespaces(meta.attrib) == strip_namespaces(attrib):
-                    raise NameError(f"{os.path.basename(self.file)} already has an \
+                    raise NameError(f"{Path(self.file).name} already has an \
                                     identical element. It is usually incorrect to have \
                                     more than one of most elements.")
         except NameError:
@@ -134,16 +134,16 @@ class EPub:
         """Adds a cover element and the required additional metadata."""
 
         if self.has_element('cover'):
-            raise RuntimeError(f"{os.path.basename(self.file)} already has a cover. Use \
+            raise RuntimeError(f"{Path(self.file).name} already has a cover. Use \
                                set_cover if you want to change it")
 
         mime = mimetypes.guess_type(path)[0]
 
-        if mime not in IMAGE_TYPES or not os.path.exists(path):
-            raise ValueError(f"{os.path.basename(self.file)} is not a valid image file.")
+        if mime not in IMAGE_TYPES or not Path(path).exists():
+            raise ValueError(f"{Path(self.file).name} is not a valid image file.")
 
-        based = os.path.split(self.opf)[0]
-        filename = os.path.join(based, f'cover{os.path.splitext(path)[1]}')
+        based = Path(self.opf).parent
+        filename = Path(based, f'cover{Path(path).suffix}')
         shutil.copy(path, filename)
 
         metadata_element = ET.Element('meta')
@@ -152,10 +152,10 @@ class EPub:
         if self.version == '3.0':
             metadata_element.attrib = {'name': 'cover', 'content': 'cover-image'}
             manifest_element.attrib = {'id': 'cover-image', 'properties': 'cover-image',
-                                       'href': os.path.basename(filename), 'media-type': mime}
+                                       'href': filename.name, 'media-type': mime}
         else:
             metadata_element.attrib = {'name': 'cover', 'content': 'cover'}
-            manifest_element.attrib = {'id': 'cover', 'href': os.path.basename(filename),
+            manifest_element.attrib = {'id': 'cover', 'href': filename.name,
                                        'media-type': mime}
 
         self.etree.find('./opf:metadata', NAMESPACES).append(metadata_element)
@@ -194,7 +194,7 @@ class EPub:
                 break
 
         if element is None:
-            raise NameError(f"{os.path.basename(self.file)} has no element: '{name}'")
+            raise NameError(f"{Path(self.file).name} has no element: '{name}'")
 
         return element
 
@@ -232,7 +232,7 @@ class EPub:
         points to the cover file."""
 
         cover_file = None
-        based = os.path.split(self.opf)[0]
+        based = Path(self.opf).parent
 
         # Some epubs found in the wild, that have been edited(?), have an extra <meta name="cover">
         # element leftover. We look at all of them until we find a matching item in the manifest.
@@ -245,7 +245,7 @@ class EPub:
                         name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id}\"]",
                                                          NAMESPACES).attrib['href']
 
-                        return os.path.join(based, name)
+                        return Path(based, name)
 
                     except AttributeError:
                         pass
@@ -258,7 +258,7 @@ class EPub:
                 cover_xpath = "./opf:manifest/opf:item/[@properties=\"cover-image\"]"
                 name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
 
-                return os.path.join(based, name)
+                return Path(based, name)
 
             except AttributeError:
                 return None
@@ -344,7 +344,7 @@ class EPub:
         mime = mimetypes.guess_type(path)[0]
         cover = self.get_cover()
 
-        if mime in IMAGE_TYPES and os.path.exists(path) and cover:
+        if mime in IMAGE_TYPES and Path(path).exists() and cover:
             os.remove(cover)
             shutil.copy(path, cover)
 
@@ -407,9 +407,9 @@ class EPub:
         """Saves the opened EPub with the modified metadata to the file specified in `path`.
         If you want to overwrite an existing file set `overwrite=True`."""
 
-        path = strip_illegal_chars(path)
+        path = Path(strip_illegal_chars(path))
 
-        if os.path.exists(path) and not overwrite:
+        if path.exists() and not overwrite:
             raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
         self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
@@ -418,7 +418,7 @@ class EPub:
         with ZipFile(path, 'w', ZIP_DEFLATED) as zip_file:
             for root, _dirs, files in os.walk(self.tempdir.name):
                 for name in files:
-                    full_path = os.path.join(root, name)
-                    zip_file.write(full_path, os.path.relpath(full_path, self.tempdir.name))
+                    full_path = Path(root, name)
+                    zip_file.write(full_path, full_path.relative_to(self.tempdir.name))
 
         self.modified = False

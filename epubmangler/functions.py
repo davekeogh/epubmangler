@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import re
 
 import xml.etree.ElementTree as ET
 
+from pathlib import Path
 from typing import Dict, List
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
@@ -21,10 +21,7 @@ def file_as(name: str) -> str:
 
     parts = name.split()
 
-    if not parts:
-        return name
-    
-    if len(parts) == 1:
+    if not parts or len(parts) == 1:
         return name
 
     name = parts[0]
@@ -41,7 +38,7 @@ def find_opf_files(path: str) -> List[str]:
     We only ever use the first one, and no books seem to have more than one, but
     the specification states that there could be."""
 
-    with open(os.path.join(path, 'META-INF/container.xml')) as container:
+    with open(Path(path, 'META-INF/container.xml')) as container:
         xmlstring = container.read()
 
     # Remove the default namespace definition (xmlns="http://some/namespace")
@@ -52,7 +49,7 @@ def find_opf_files(path: str) -> List[str]:
     files = []
 
     for item in root.findall('./rootfiles/rootfile'):
-        files.append(os.path.join(path, item.attrib['full-path']))
+        files.append(Path(path, item.attrib['full-path']))
 
     return files
 
@@ -60,13 +57,9 @@ def find_opf_files(path: str) -> List[str]:
 def is_epub(path: str) -> bool:
     """Returns True if `path` points to a valid epub file."""
 
-    if not os.path.exists(path):
-        return False
+    p = Path(path)
 
-    if os.path.splitext(path)[1] != '.epub':
-        return False
-
-    if not is_zipfile(path):
+    if not p.exists() or p.suffix != '.epub' or not is_zipfile(path):
         return False
 
     with ZipFile(path, 'r', ZIP_DEFLATED) as zip_file:
@@ -118,9 +111,6 @@ def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
 def strip_illegal_chars(path: str, replace: str = '-') -> str:
     """Removes any characters from `path` that may cause file system errors on some cases."""
 
-    dirname, basename = os.path.split(path)
-
-    for char in ILLEGAL_CHARS:
-        basename.replace(char, replace)
-
-    return os.path.join(dirname, basename)
+    p = Path(path)
+    [p.name.replace(char, replace) for char in ILLEGAL_CHARS]
+    return p

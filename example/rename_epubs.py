@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Rename epub files in a directory to `author - title.epub`."""
 
-import os, os.path, sys, timeit
+import os, sys, timeit
+from pathlib import Path
 from epubmangler import EPub, is_epub, ILLEGAL_CHARS
 
 def rename_file(path: str) -> None:
@@ -20,7 +21,7 @@ def rename_file(path: str) -> None:
     for char in ILLEGAL_CHARS:
         file_name = file_name.replace(char, '-')
 
-    new_file = os.path.join(DIR, file_name)
+    new_file = Path(DIR, file_name)
 
     if new_file != full_path:
         os.rename(full_path, new_file)
@@ -28,7 +29,7 @@ def rename_file(path: str) -> None:
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
+    if len(sys.argv) > 1 and Path(sys.argv[1]).is_dir():
         DIR = sys.argv[1]
     else:
         DIR = os.getcwd()
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     TIME = 0
 
     for file in os.listdir(DIR):
-        full_path = os.path.join(DIR, file)
+        full_path = Path(DIR, file)
 
         if is_epub(full_path):
             FILES += 1

@@ -4,10 +4,10 @@
 import json
 import mimetypes
 import os
-import os.path
 import sys
 import time
 
+from pathlib import Path
 from xml.etree.ElementTree import Element
 
 from epubmangler import (EPub, strip_namespace, strip_namespaces,
@@ -19,9 +19,9 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango
 
 # TODO: This needs to get set during install
-RESOURCE_DIR = '/home/david/Projects/epubmangler/gtk'
-BUILDER = os.path.join(RESOURCE_DIR, 'widgets.xml')
-ICON = os.path.join(RESOURCE_DIR, 'epubmangler.svg')
+RESOURCE_DIR = Path('/home/david/Projects/epubmangler/gtk')
+BUILDER = str(RESOURCE_DIR / 'widgets.xml')
+ICON = str(RESOURCE_DIR / 'epubmangler.svg')
 
 
 class Application:
@@ -133,8 +133,8 @@ class Application:
         # Finalize window
         self.set_cover_image()
         self.update_widgets()
-        self.get('title_label').set_text(os.path.basename(self.book.file))
-        self.window.set_title(os.path.basename(self.book.file))
+        self.get('title_label').set_text(Path(self.book.file).name)
+        self.window.set_title(Path(self.book.file).name)
         self.window.set_icon_from_file(ICON)
         self.window.show()
 
@@ -146,7 +146,7 @@ class Application:
             return GdkPixbuf.Pixbuf.new_from_file_at_size(file, (rect.width * 0.3),
                                                           (rect.height * 0.9))
 
-        if path and os.path.exists(path):
+        if path and Path(path).exists():
             self.window.connect('size-allocate', lambda _win, allocation:
                                 self.get('cover').set_from_pixbuf(scale_cover(path, allocation)))
         else:
@@ -221,9 +221,9 @@ class Application:
                     break
 
                 if mount:
-                    root = os.path.join(mount.get_root().get_path(), 'documents')
+                    root = Path(mount.get_root().get_path(), 'documents')
 
-                    if os.path.exists(root):
+                    if Path(root).exists:
                         button.connect('clicked', self.send_book)
                         button.set_label('Send to Kindle')
                         button.show()
@@ -376,7 +376,7 @@ class Application:
 
     def save(self, _b: Gtk.Button) -> None:
         dialog = Gtk.FileChooserDialog(parent=self.window, action=Gtk.FileChooserAction.SAVE)
-        dialog.set_current_name(os.path.basename(self.book.file))
+        dialog.set_current_name(Path(self.book.file).name)
         dialog.set_do_overwrite_confirmation(True)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
@@ -388,14 +388,14 @@ class Application:
         dialog.destroy()
 
     def send_book(self, _button: Gtk.Button, device_path: str) -> None:
-        copy_to = os.path.join(device_path, os.path.basename(self.book.file))
+        copy_to = Path(device_path, Path(self.book.file).name)
 
-        if not os.path.exists(copy_to):
+        if not Path(copy_to).exists:
             self.book.save(copy_to)
         else:
             dialog = Gtk.MessageDialog(text='File already exists',
                                        message_type=Gtk.MessageType.QUESTION)
-            dialog.format_secondary_text(f'Replace file "{os.path.basename(self.book.file)}"?')
+            dialog.format_secondary_text(f'Replace file "{Path(self.book.file).name}"?')
             dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
 
@@ -427,7 +427,7 @@ class Application:
             if dialog.run() == Gtk.ResponseType.OK:
                 chooser = Gtk.FileChooserDialog(parent=self.window,
                                                 action=Gtk.FileChooserAction.SAVE)
-                chooser.set_current_name(os.path.basename(self.book.file))
+                chooser.set_current_name(Path(self.book.file).name)
                 chooser.set_do_overwrite_confirmation(True)
                 chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                     Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
@@ -450,9 +450,9 @@ if __name__ == '__main__':
             # Select a random book from local collection of epubs
             import random
             folder = '/home/david/Projects/epubmangler/books/calibre'
-            filename = os.path.join(folder, random.choice(os.listdir(folder)))
+            filename = Path(folder, random.choice(os.listdir(folder)))
         else:
-            filename = os.path.abspath(sys.argv[1])
+            filename = Path(sys.argv[1]).absolute()
     else:
         raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
 
