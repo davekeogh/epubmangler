@@ -184,8 +184,7 @@ class Application:
             except ValueError:
                 pass
 
-        if my_time:
-            # GtkCalendar uses 0-11 for month
+        if my_time:  # GtkCalendar uses 0-11 for month
             self.get('calendar').select_month(int(my_time.tm_mon) - 1, my_time.tm_year)
             self.get('calendar').select_day(my_time.tm_mday)
 
@@ -248,7 +247,8 @@ class Application:
             self._mtime = now
         elif now != self._mtime:
             self._mtime = now
-            # TODO: This
+            self.book.parse_opf(modified=True)
+            self.update_widgets()
 
         return GLib.SOURCE_CONTINUE
 
@@ -377,8 +377,8 @@ class Application:
             except json.JSONDecodeError:
                 attrib = {}
 
-        self.details.remove(iter)
-        self.book.remove(self.details.get_value(iter, 0), attrib)
+            self.details.remove(iter)
+            self.book.remove(self.details.get_value(iter, 0), attrib)
 
     def remove_subject(self, _button: Gtk.Button) -> None:
         iter = self.get('subjects').get_selection().get_selected()[1]

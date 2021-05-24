@@ -58,16 +58,7 @@ class EPub:
         with ZipFile(self.file, 'r', ZIP_DEFLATED) as zip_file:
             zip_file.extractall(self.tempdir.name)
 
-        try:
-            self.opf = find_opf_files(self.tempdir.name)[0]
-            self.etree = ET.parse(self.opf)
-            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
-            self.version = self.etree.getroot().attrib['version']
-            self.modified = False
-        except IndexError:
-            raise ValueError(f"{path} does not appear to be a valid .epub file.")
-        except ET.ParseError:
-            raise ValueError(f"{path} does not appear to be a valid .epub file.")
+        self.parse_opf()
 
 
     def __del__(self) -> None:
@@ -364,6 +355,22 @@ class EPub:
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
         self.modified = True
+
+
+    def parse_opf(self, modified: bool = False) -> None:
+        """Loads the opf file into memory. This is used on initialization, and may be of use
+        if the file is edited from another process."""
+
+        try:
+            self.opf = find_opf_files(self.tempdir.name)[0]
+            self.etree = ET.parse(self.opf)
+            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
+            self.version = self.etree.getroot().attrib['version']
+            self.modified = modified
+        except IndexError:  # No OPF found
+            raise ValueError(f"{self.file} does not appear to be a valid .epub file.")
+        except ET.ParseError:  # XML error
+            raise ValueError(f"{self.file} does not appear to be a valid .epub file.")
 
 
     def save_opf(self, path: str = None) -> None:
