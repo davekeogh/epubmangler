@@ -120,12 +120,6 @@ class EPub:
         if attrib:
             element.attrib = attrib
 
-        if name in ('creator', 'contributor'):
-            if attrib:
-                element.attrib['opf:file-as'] = file_as(text)
-            else:
-                element.attrib = {'opf:file-as': file_as(text)}
-
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
         self.modified = True
 
@@ -310,11 +304,6 @@ class EPub:
 
     def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
         """Sets the text and attribs of an element."""
-
-        if name in ('creator', 'contributor'):
-            if not attrib:
-                attrib = {}
-            attrib['opf:file-as'] = file_as(text)
 
         if not attrib:
             element = self.get(name)
