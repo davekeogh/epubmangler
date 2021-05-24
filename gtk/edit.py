@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
-from epubmangler import (EPub, strip_namespace, strip_namespaces,
+from epubmangler import (EPub, sizeof_format, strip_namespace, strip_namespaces,
                          IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS)
 
 import gi
@@ -134,6 +134,8 @@ class Application:
         self.set_cover_image()
         self.update_widgets()
         self.get('title_label').set_text(Path(self.book.file).name)
+        self.get('filesize_label').set_text(sizeof_format(self.book.file.stat().st_size))
+        self.get('version_label').set_text("EPub Version " + self.book.version)
         self.window.set_title(Path(self.book.file).name)
         self.window.set_icon_from_file(ICON)
         self.window.show()
@@ -198,8 +200,6 @@ class Application:
 
         # Update liststores
         [self.subjects.append([sub.text]) for sub in self.book.get_all('subject')]
-
-        self.details.append(['version', self.book.version, ''])
 
         for meta in self.book.metadata:
             if strip_namespace(meta.tag) != 'description':
