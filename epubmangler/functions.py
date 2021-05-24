@@ -70,23 +70,25 @@ def is_epub(path: str) -> bool:
             return False
 
 
-def namespaced_text(text:str, namespaces:Dict[str] = NAMESPACES) -> str:
+def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
     """Returns the name and namespace formated for elementtree."""
 
     try:
-       ns, text = re.split(':', text)
+        ns, text = re.split(':', text)
     except ValueError:
         return text
 
     return f"{{{namespaces[ns]}}}{text}"
 
 
-def sizeof_format(number: int) -> str:
+def sizeof_format(file: str) -> str:
     """Returns a human readable, decimal prefixed string containing the file size of `number`."""
 
-    for unit in ['','k','M','G','T','P','E','Z', 'Y']:
+    number = Path(file).stat().st_size
+
+    for prefix in ('', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'):
         if number < 1000:
-            return f'{number:.1f} {unit}B'
+            return f'{number:.1f} {prefix}B'
         number /= 1000
     else:
         return f'{number:.1f} ?B'

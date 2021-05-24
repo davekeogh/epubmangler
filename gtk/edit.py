@@ -32,6 +32,7 @@ class Application:
     subjects: Gtk.ListStore = Gtk.ListStore(str)
     tags: Gtk.Window = Gtk.ListStore(str)
     warnings: bool = True
+    _mtime: float = 0
 
     def __init__(self, filename: str) -> None:
         self.book = EPub(filename)
@@ -70,6 +71,7 @@ class Application:
 
         GLib.idle_add(self.volume_monitor_idle)
         GLib.idle_add(self.book_modified_idle)
+        GLib.idle_add(self.opf_edited_idle)
 
         # Subjects list
         self.get('subjects').set_model(self.subjects)
@@ -134,7 +136,7 @@ class Application:
         self.set_cover_image()
         self.update_widgets()
         self.get('title_label').set_text(Path(self.book.file).name)
-        self.get('filesize_label').set_text(sizeof_format(self.book.file.stat().st_size))
+        self.get('filesize_label').set_text(sizeof_format(self.book.file))
         self.get('version_label').set_text("EPub Version " + self.book.version)
         self.window.set_title(Path(self.book.file).name)
         self.window.set_icon_from_file(ICON)
@@ -238,6 +240,17 @@ class Application:
             return GLib.SOURCE_REMOVE
         else:
             return GLib.SOURCE_CONTINUE
+
+    def opf_edited_idle(self) -> bool:
+        now = os.stat(self.book.opf).st_mtime
+
+        if not self._mtime:  # First run
+            self._mtime = now
+        elif now != self._mtime:
+            self._mtime = now
+            # TODO: This
+
+        return GLib.SOURCE_CONTINUE
 
     # SIGNAL CALLBACKS
     def about(self, _button: Gtk.ModelButton) -> None:
@@ -380,6 +393,17 @@ class Application:
         dialog.set_do_overwrite_confirmation(True)
         dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                            Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+
+        box = Gtk.Box(spacing=12)
+        box.set_hexpand(True)
+        box.set_halign(Gtk.Align.END)
+        type_label = Gtk.Label.new("EPub Version " + self.book.version)
+        size_label = Gtk.Label.new(sizeof_format(self.book.file))
+        size_label.set_halign(Gtk.Align.END)
+        box.pack_start(type_label, False, False, 0)
+        box.pack_start(size_label, False, True, 0)
+        dialog.set_extra_widget(box)
+        box.show_all()
 
         if dialog.run() == Gtk.ResponseType.OK:
             self.book.save(dialog.get_filename(), overwrite=True)
