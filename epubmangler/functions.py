@@ -81,6 +81,17 @@ def namespaced_text(text:str, namespaces:Dict[str] = NAMESPACES) -> str:
     return f"{{{namespaces[ns]}}}{text}"
 
 
+def sizeof_format(number: int) -> str:
+    """Returns a human readable, decimal prefixed string containing the file size of `number`."""
+
+    for unit in ['','k','M','G','T','P','E','Z', 'Y']:
+        if abs(number) < 1000:
+            return f'{number:.1f} {unit}B'
+        number /= 1000
+    else:
+        return f'{number:.1f}'
+
+
 def strip_namespace(text: str) -> str:
     """Strips the XML namespace from some text (either a tag or attribute name).
     This just returns the third element of `text.rpartition('}')`
