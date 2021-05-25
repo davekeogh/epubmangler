@@ -4,6 +4,7 @@
 import json
 import mimetypes
 import os
+import random
 import sys
 import time
 
@@ -31,47 +32,15 @@ class Application:
     details: Gtk.ListStore = Gtk.ListStore(str, str, str)
     subjects: Gtk.ListStore = Gtk.ListStore(str)
     tags: Gtk.Window = Gtk.ListStore(str)
+    config: Path = None
     warnings: bool = True
-    _mtime: float = 0
+    mtime_cache: float = 0
 
     def __init__(self, filename: str) -> None:
         self.book = EPub(filename)
         self.get = self.builder.get_object
         self.window = self.get('window')
-
-        # Signal connection
-        self.window.connect('delete-event', self.quit)
-        self.get('quit_button').connect('clicked', self.quit)
-        self.get('about_button').connect('clicked', self.about)
-        self.get('save_button').connect('clicked', self.save)
-        self.get('warnings_button').connect('clicked', self.toggle_warnings)
-        self.get('details_button').connect('clicked', self.toggle_details)
-        self.get('calendar').connect('day-selected', self.edit_date)
-        self.get('subject_entry').connect('activate', self.add_subject)
-        self.get('remove_button').connect('clicked', self.remove_subject)
-        self.get('cover_button').connect('button-press-event', self.add_or_set_cover)
-        self.get('details_remove_button').connect('clicked', self.remove_element)
-        self.get('popover_add_button').connect('clicked', self.add_element)
-        self.get('popover_clear_button').connect('clicked', self.clear_popover)
-        self.get('infobar').connect('response', lambda infobar, _response: infobar.destroy())
-        self.get('details_add_button').connect('clicked', lambda _b:
-                                               self.get('tag_entry').grab_focus())
-        self.get('subjects').connect('cursor-changed', lambda view, button:
-                                     button.set_sensitive((view.get_cursor().path is not None)),
-                                     self.get('remove_button'))
-        self.get('details').connect('cursor-changed', lambda view, button:
-                                    button.set_sensitive((view.get_cursor().path is not None)),
-                                    self.get('details_remove_button'))
-        self.get('help_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
-                                        f'{WEBSITE}/blob/main/gtk/README.md', Gdk.CURRENT_TIME))
-        self.get('edit_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
-                                        f'file://{self.book.opf}', Gdk.CURRENT_TIME))
-        self.get('folder_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
-                                          f'file://{self.book.tempdir.name}', Gdk.CURRENT_TIME))
-
-        GLib.idle_add(self.volume_monitor_idle)
-        GLib.idle_add(self.book_modified_idle)
-        GLib.idle_add(self.opf_edited_idle)
+        self.load_config()
 
         # Subjects list
         self.get('subjects').set_model(self.subjects)
@@ -132,6 +101,40 @@ class Application:
         tag_completion.set_text_column(0)
         self.get('tag_entry').set_completion(tag_completion)
 
+        # Signal connection
+        self.window.connect('delete-event', self.quit)
+        self.get('quit_button').connect('clicked', self.quit)
+        self.get('about_button').connect('clicked', self.about)
+        self.get('save_button').connect('clicked', self.save)
+        self.get('warnings_button').connect('clicked', self.toggle_warnings)
+        self.get('details_button').connect('clicked', self.toggle_details)
+        self.get('calendar').connect('day-selected', self.edit_date)
+        self.get('subject_entry').connect('activate', self.add_subject)
+        self.get('remove_button').connect('clicked', self.remove_subject)
+        self.get('cover_button').connect('button-press-event', self.add_or_set_cover)
+        self.get('details_remove_button').connect('clicked', self.remove_element)
+        self.get('popover_add_button').connect('clicked', self.add_element)
+        self.get('popover_clear_button').connect('clicked', self.clear_popover)
+        self.get('infobar').connect('response', lambda infobar, _response: infobar.destroy())
+        self.get('details_add_button').connect('clicked', lambda _b:
+                                               self.get('tag_entry').grab_focus())
+        self.get('subjects').connect('cursor-changed', lambda view, button:
+                                     button.set_sensitive((view.get_cursor().path is not None)),
+                                     self.get('remove_button'))
+        self.get('details').connect('cursor-changed', lambda view, button:
+                                    button.set_sensitive((view.get_cursor().path is not None)),
+                                    self.get('details_remove_button'))
+        self.get('help_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                        f'{WEBSITE}/blob/main/gtk/README.md', Gdk.CURRENT_TIME))
+        self.get('edit_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                        f'file://{self.book.opf}', Gdk.CURRENT_TIME))
+        self.get('folder_button').connect('clicked', lambda _b: Gtk.show_uri_on_window(self.window,
+                                          f'file://{self.book.tempdir.name}', Gdk.CURRENT_TIME))
+
+        GLib.idle_add(self.volume_monitor_idle)
+        GLib.idle_add(self.book_modified_idle)
+        GLib.idle_add(self.opf_edited_idle)
+
         # Finalize window
         self.set_cover_image()
         self.update_widgets()
@@ -142,6 +145,7 @@ class Application:
         self.window.set_icon_from_file(ICON)
         self.window.show()
 
+    # METHODS
     def set_cover_image(self, path: str = None) -> None:
         if not path:
             path = self.book.get_cover()
@@ -207,6 +211,37 @@ class Application:
                 self.details.append([strip_namespace(meta.tag), meta.text,
                                     str(strip_namespaces(meta.attrib))])
 
+    def load_config(self) -> None:
+        if sys.platform == 'windows':
+            self.config = Path(os.environ['%APPDATA%']) / 'epubmangler.conf'
+
+        elif sys.platform == 'darwin':
+            self.config = Path.home() / 'Library/Application Support/epubmangler/epubmangler.conf'
+
+        else:  # linux or similar
+            if 'XDG_CONFIG_HOME' in os.environ.keys():
+                self.config = Path(os.environ['XDG_CONFIG_HOME']) / 'epubmangler.conf'
+
+            elif Path(Path.home(), '.config').is_dir:
+                self.config = Path.home() / '.config/epubmangler.conf'
+
+            else:
+                self.config = Path.home() / '.epubmangler.conf'
+
+        if self.config.exists():
+            with open(self.config, 'r') as config:
+                self.warnings = json.load(config)['warnings']
+
+        self.get('infobar').set_visible(self.warnings)
+        self.get('warnings_button').set_property('active', not self.warnings)
+
+    def save_config(self) -> None:
+        if not self.config.parent.is_dir():
+            os.mkdir(self.config.parent)
+
+        with open(self.config, 'w') as config:
+            json.dump({'warnings': self.warnings}, config, indent=4)
+
     # IDLE FUNCTIONS
     def volume_monitor_idle(self) -> bool:
         button = self.get('device_button')
@@ -241,12 +276,12 @@ class Application:
             return GLib.SOURCE_CONTINUE
 
     def opf_edited_idle(self) -> bool:
-        now = os.stat(self.book.opf).st_mtime
+        mtime = os.stat(self.book.opf).st_mtime
 
-        if not self._mtime:  # First run
-            self._mtime = now
-        elif now != self._mtime:
-            self._mtime = now
+        if not self.mtime_cache:  # First run
+            self.mtime_cache = mtime
+        elif mtime != self.mtime_cache:
+            self.mtime_cache = mtime
             self.book.parse_opf(modified=True)
             self.update_widgets()
 
@@ -438,7 +473,6 @@ class Application:
         button.set_property('active', not current)
         self.warnings = current
         self.get('infobar').set_visible(current)
-        # TODO: Save this setting?
 
     def quit(self, _caller: Gtk.Widget, _event: Gdk.Event = None) -> None:
         if self.book.modified and self.warnings:
@@ -463,20 +497,22 @@ class Application:
 
             dialog.destroy()
 
+        self.save_config()
         Gtk.main_quit()
 
 
+# Entry point
 if __name__ == '__main__':
-    # Entry point
     if len(sys.argv) > 1:
         if sys.argv[1] == 'test':
             # TODO: Delete
             # Select a random book from local collection of epubs
-            import random
             folder = '/home/david/Projects/epubmangler/books/calibre'
             filename = Path(folder, random.choice(os.listdir(folder)))
         else:
-            filename = Path(sys.argv[1]).absolute()
+            filename = Path(sys.argv[1])
+        if not filename.is_file():
+            raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
     else:
         raise SystemExit(f'Usage: {sys.argv[0]} [FILE]')
 
