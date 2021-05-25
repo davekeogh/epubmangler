@@ -32,6 +32,12 @@ from .functions import (file_as, find_opf_files, is_epub, namespaced_text, strip
 from .globals import XPATHS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
 
 
+class EPubError(Exception):
+    """Exception that is raised when an error occurs during an `EPub` method."""
+
+    ...
+
+
 class EPub:
     """A Python object representing an epub ebook's editable metadata."""
 
@@ -50,7 +56,7 @@ class EPub:
         self.tempdir = None
 
         if not is_epub(path):
-            raise ValueError(f"{path} does not appear to be a valid .epub file.")
+            raise EPubError(f"{path} does not appear to be a valid .epub file.")
 
         self.file = path
         self.tempdir = TempDir(prefix='epubmangler-')
@@ -100,7 +106,7 @@ class EPub:
         try:
             for meta in self.get_all(name):
                 if strip_namespaces(meta.attrib) == strip_namespaces(attrib):
-                    raise NameError(f"{Path(self.file).name} already has an \
+                    raise EPubError(f"{Path(self.file).name} already has an \
                                     identical element. It is usually incorrect to have \
                                     more than one of most elements.")
         except NameError:
@@ -119,13 +125,13 @@ class EPub:
         """Adds a cover element and the required additional metadata."""
 
         if self.has_element('cover'):
-            raise RuntimeError(f"{Path(self.file).name} already has a cover. Use \
-                               set_cover if you want to change it")
+            raise EPubError(f"{Path(self.file).name} already has a cover. Use \
+                            set_cover if you want to change it")
 
         mime = mimetypes.guess_type(path)[0]
 
         if mime not in IMAGE_TYPES or not Path(path).exists():
-            raise ValueError(f"{Path(self.file).name} is not a valid image file.")
+            raise EPubError(f"{Path(self.file).name} is not a valid image file.")
 
         based = Path(self.opf).parent
         filename = Path(based, f'cover{Path(path).suffix}')
@@ -171,7 +177,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise NameError(f"Unrecognized element: '{name}'")
+            raise EPubError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
             element = self.etree.getroot().find(xpath, NAMESPACES)
@@ -179,7 +185,7 @@ class EPub:
                 break
 
         if element is None:
-            raise NameError(f"{Path(self.file).name} has no element: '{name}'")
+            raise EPubError(f"{Path(self.file).name} has no element: '{name}'")
 
         return element
 
@@ -193,7 +199,7 @@ class EPub:
         try:
             xpaths = XPATHS[name]
         except KeyError:
-            raise NameError(f"Unrecognized element: '{name}'")
+            raise EPubError(f"Unrecognized element: '{name}'")
 
         for xpath in xpaths:
             # ET.Element can evaluate as False, so we need test that element is not None
@@ -368,9 +374,9 @@ class EPub:
             self.version = self.etree.getroot().attrib['version']
             self.modified = modified
         except IndexError:  # No OPF found
-            raise ValueError(f"{self.file} does not appear to be a valid .epub file.")
+            raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
         except ET.ParseError:  # XML error
-            raise ValueError(f"{self.file} does not appear to be a valid .epub file.")
+            raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
 
 
     def save_opf(self, path: str = None) -> None:
