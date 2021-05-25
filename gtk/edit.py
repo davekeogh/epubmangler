@@ -40,28 +40,17 @@ class Application:
         self.book = EPub(filename)
         self.get = self.builder.get_object
         self.window = self.get('window')
-        self.load_config()
+        self.window.set_title(Path(self.book.file).name)
+        self.window.set_icon_from_file(ICON)
+
+        self.get('title_label').set_text(Path(self.book.file).name)
+        self.get('filesize_label').set_text(sizeof_format(self.book.file))
+        self.get('version_label').set_text("EPub Version " + self.book.version)
 
         # Subjects list
         self.get('subjects').set_model(self.subjects)
         self.get('subjects').append_column(Gtk.TreeViewColumn('Subjects',
                                            Gtk.CellRendererText(), text=0))
-
-        # Description
-        try:
-            description_text = self.book.get('description').text
-        except EPubError:
-            description_text = None
-
-        if description_text:
-            buffer = Gtk.TextBuffer()
-            buffer.set_text(description_text)
-            buffer.connect('changed', lambda buffer, book:
-                           self.book.set('description',
-                                         buffer.get_text(buffer.get_start_iter(),
-                                                         buffer.get_end_iter(),
-                                                         True)), self.book)
-            self.get('description').set_buffer(buffer)
 
         # Details view
         self.details.set_sort_column_id(0, Gtk.SortType.ASCENDING)
@@ -101,7 +90,22 @@ class Application:
         tag_completion.set_text_column(0)
         self.get('tag_entry').set_completion(tag_completion)
 
+        # Description
+        try:
+            description_text = self.book.get('description').text
+        except EPubError:
+            description_text = None
+
+        buffer = self.get('description').get_buffer()
+
+        if description_text:
+            buffer.set_text(description_text)
+
         # Signal connection
+        buffer.connect('changed', lambda buffer, book:
+                       self.book.set('description', buffer.get_text(buffer.get_start_iter(),
+                                     buffer.get_end_iter(), True)), self.book)
+
         self.window.connect('delete-event', self.quit)
         self.get('quit_button').connect('clicked', self.quit)
         self.get('about_button').connect('clicked', self.about)
@@ -136,13 +140,9 @@ class Application:
         GLib.idle_add(self.opf_edited_idle)
 
         # Finalize window
+        self.load_config()
         self.set_cover_image()
         self.update_widgets()
-        self.get('title_label').set_text(Path(self.book.file).name)
-        self.get('filesize_label').set_text(sizeof_format(self.book.file))
-        self.get('version_label').set_text("EPub Version " + self.book.version)
-        self.window.set_title(Path(self.book.file).name)
-        self.window.set_icon_from_file(ICON)
         self.window.show()
 
     # METHODS
