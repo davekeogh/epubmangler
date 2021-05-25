@@ -281,15 +281,16 @@ class EPub:
 
         elements = self.get_all(name)
 
-        if attrib:
-            for element in elements:
-                if attrib == strip_namespaces(element.attrib):
-                    self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(element)
+        if len(elements):
+            if attrib:
+                for element in elements:
+                    if attrib == strip_namespaces(element.attrib):
+                        self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(element)
 
-        else:
-            self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
+            else:
+                self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
 
-        self.modified = True
+            self.modified = True
 
 
     def remove_subject(self, name: str) -> None:

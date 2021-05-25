@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
-from epubmangler import (EPub, sizeof_format, strip_namespace, strip_namespaces,
+from epubmangler import (EPub, EPubError, sizeof_format, strip_namespace, strip_namespaces,
                          IMAGE_TYPES, NAMESPACES, VERSION, TIME_FORMAT, WEBSITE, XPATHS)
 
 import gi
@@ -81,7 +81,7 @@ class Application:
         # Description
         try:
             description_text = self.book.get('description').text
-        except NameError:
+        except EPubError:
             description_text = None
 
         if description_text:
@@ -164,7 +164,7 @@ class Application:
         for field in ('title', 'creator', 'publisher', 'language'):
             try:
                 self.get(field).set_text(self.book.get(field).text)
-            except NameError:
+            except EPubError:
                 ...
 
             self.get(field).connect('changed', self.add_or_set_field, field)
@@ -172,7 +172,7 @@ class Application:
         # Date and calendar
         try:
             date = self.book.get('date').text
-        except NameError:
+        except EPubError:
             date = time.strftime(TIME_FORMAT)
 
         my_time = None
@@ -377,8 +377,8 @@ class Application:
             except json.JSONDecodeError:
                 attrib = {}
 
-            self.details.remove(iter)
             self.book.remove(self.details.get_value(iter, 0), attrib)
+            self.details.remove(iter)
 
     def remove_subject(self, _button: Gtk.Button) -> None:
         iter = self.get('subjects').get_selection().get_selected()[1]
