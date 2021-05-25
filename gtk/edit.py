@@ -2,14 +2,11 @@
 """A GTK interface to the epubmangler library."""
 
 import json
-import logging
 import mimetypes
 import os
 import sys
 import time
 
-from io import StringIO
-from logging import Formatter, getLogger, Logger, StreamHandler
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
@@ -35,29 +32,18 @@ class Application:
     subjects: Gtk.ListStore = Gtk.ListStore(str)
     tags: Gtk.Window = Gtk.ListStore(str)
     warnings: bool = True
-    mtime: float = 0
-    logger: Logger = getLogger('epubmangler')
-    log_capture_string: StringIO = StringIO()
+    _mtime: float = 0
 
     def __init__(self, filename: str) -> None:
         self.book = EPub(filename)
         self.get = self.builder.get_object
         self.window = self.get('window')
 
-        self.logger.setLevel(logging.DEBUG)
-        handler = StreamHandler(self.log_capture_string)
-        handler.setFormatter(Formatter('%(asctime)s - %(levelname)s - %(message)s',
-                                       datefmt='%Y-%m-%d %H:%M:%S'))
-        self.logger.addHandler(handler)
-
-        self.logger.info(f'`{Path(filename).name}` opened')
-
         # Signal connection
         self.window.connect('delete-event', self.quit)
         self.get('quit_button').connect('clicked', self.quit)
         self.get('about_button').connect('clicked', self.about)
         self.get('save_button').connect('clicked', self.save)
-        self.get('log_button').connect('clicked', self.view_logs)
         self.get('warnings_button').connect('clicked', self.toggle_warnings)
         self.get('details_button').connect('clicked', self.toggle_details)
         self.get('calendar').connect('day-selected', self.edit_date)
@@ -257,10 +243,10 @@ class Application:
     def opf_edited_idle(self) -> bool:
         now = os.stat(self.book.opf).st_mtime
 
-        if not self.mtime:  # First run
-            self.mtime = now
-        elif now != self.mtime:
-            self.mtime = now
+        if not self._mtime:  # First run
+            self._mtime = now
+        elif now != self._mtime:
+            self._mtime = now
             self.book.parse_opf(modified=True)
             self.update_widgets()
 
@@ -454,28 +440,6 @@ class Application:
         self.get('infobar').set_visible(current)
         # TODO: Save this setting?
 
-    def view_logs(self, _button: Gtk.ModelButton) -> None:
-        dialog = Gtk.Dialog(title='Log', transient_for=self.window, flags=None)
-        dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.OK)
-        dialog.set_default_size(600, 400)
-
-        scrolled_win = Gtk.ScrolledWindow()
-        [margin(6) for margin in (scrolled_win.set_margin_top, scrolled_win.set_margin_start,
-                                  scrolled_win.set_margin_end, scrolled_win.set_margin_bottom)]
-        scrolled_win.set_hexpand(True)
-        scrolled_win.set_vexpand(True)
-
-        dialog.get_content_area().add(scrolled_win)
-
-        textview = Gtk.TextView()
-        textbuffer = textview.get_buffer()
-        textbuffer.set_text(self.log_capture_string.getvalue().strip('\n'))
-        scrolled_win.add(textview)
-
-        dialog.get_content_area().show_all()
-        dialog.run()
-        dialog.destroy()
-
     def quit(self, _caller: Gtk.Widget, _event: Gdk.Event = None) -> None:
         if self.book.modified and self.warnings:
             dialog = Gtk.MessageDialog(text='File has unsaved changes',
@@ -498,8 +462,6 @@ class Application:
                 chooser.destroy()
 
             dialog.destroy()
-
-        self.logger.info('exiting')
 
         Gtk.main_quit()
 
