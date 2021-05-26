@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="style.css" />
+    <script src="static/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="static/style.css" />
     <title>E P U B M A N G L E R</title>
   </head>
   <body>
-    <form action="/edit" method="POST">
-      <input type="file" />
-      <p>D R O P - E P U B - H E R E | O R - C L I C K</p>
-      <button type="submit">U P L O A D</button>
+    <form class="upload" action="/edit" enctype="multipart/form-data" method="POST">
+      <input name="file" type="file" accept="application/epub+zip,.epub" required />
+      <p>Drop an .epub file here; or click.</p>
+      <button type="submit" disabled>Edit</button>
     </form>
     <script>
       $(document).ready(function () {
         $("form input").change(function () {
           if (this.files.length) {
             $("form p").text(this.files[0].name);
+            $("form button").attr("disabled", false);
           } else {
-            $("form p").text("D R O P - E P U B - H E R E | O R - C L I C K");
+            $("form p").text("Drop an .epub file here; or click.");
+            $("form button").attr("disabled", true);
           }
         });
       });
