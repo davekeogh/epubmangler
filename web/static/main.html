@@ -9,17 +9,17 @@
 <body>
 <form class="upload" action="/edit" enctype="multipart/form-data" method="POST">
 <input name="file" type="file" accept="application/epub+zip,.epub" required />
-<p>Drop an .epub file here; or click.</p>
+<p>Drop an <em>.epub</em> file here; or click.</p>
 <button type="submit" disabled>Edit</button>
 </form>
 <script>
 $(document).ready(function () {
   $("form input").change(function () {
     if (this.files.length) {
-      $("form p").text(this.files[0].name);
+      $("form p").html(`<em>${this.files[0].name}</em>`);
       $("form button").attr("disabled", false);}
     else {
-      $("form p").text("Drop an .epub file here; or click.");
+      $("form p").html("Drop an <em>.epub</em> file here; or click.");
       $("form button").attr("disabled", true);}
 });});
 </script>

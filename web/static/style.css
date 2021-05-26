@@ -1,7 +1,13 @@
 body {
-  color: #ffffff;
   font-family: Arial;
-  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  background: black;
+}
+
+em {
+  font-style: italic;
+  font-weight: bold;
+  color: orange;
 }
 
 form.upload {
@@ -13,7 +19,7 @@ form.upload {
   width: 500px;
   height: 200px;
   border-radius: 4px;
-  border: 2px dashed #ffffff;
+  border: 2px dashed white;
 }
 
 form.upload p {
@@ -35,36 +41,45 @@ form.upload input[type="file"] {
 
 form button[type="submit"] {
   margin: 0;
-  color: #ffffff;
-  background: #16a085;
-  border: none;
+  font-weight: bold;
+  color: white;
+  background: orangered;
   width: 508px;
   height: 35px;
   margin-top: -20px;
   margin-left: -4px;
   border-radius: 4px;
-  border-bottom: 4px solid #117a60;
+  border: 2px solid white;
   transition: all 0.2s ease;
   outline: none;
 }
 
-form button[type="submit"]:hover {
-  background: #149174;
-  color: #0c5645;
-}
-
-form button[type="submit"]:active {
-  border: 0;
-}
-
-form button#delete {
+form button.delete {
   margin: 0;
-  color: #ff0000;
-  background: #16a085;
+  font-weight: bold;
+  outline: none;
+  border-radius: 2px;
+  border: 1px solid white;
+  color: white;
+  background: maroon;
 }
 
-form button#add {
+form button.add {
   margin: 0;
-  color: #ffffff;
-  background: #16a085;
+  font-weight: bold;
+  outline: none;
+  border-radius: 2px;
+  border: 1px solid white;
+  color: white;
+  background: goldenrod;
+}
+
+form button:hover {
+  /* TODO: Do some transformation on the current colors */
+  background:orange;
+  color: black;
+}
+
+form button:active {
+  border: none;
 }

@@ -2,6 +2,8 @@
 
 import os
 import shutil
+import uuid
+
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, UploadFile
@@ -36,14 +38,18 @@ async def edit(file: UploadFile = File(...)):
         return HTMLResponse(template.replace("{{ body }}", f"not an epub: {filename}"))
 
     cover_path = Path(epub.get_cover())
-    temp_cover = None
+    temp_cover = Path()
+    inner_html = ''
 
     if cover_path.is_file():
-        temp_cover = Path('static', f'{hash(str(cover_path))}.{cover_path.suffix}')
+        temp_cover = Path('static/images', f'{uuid.uuid4()}{cover_path.suffix}')
         shutil.copy(cover_path, temp_cover)
 
-    inner_html = (
-        f'<p>editing: {epub.file}</p>\n'
+    if temp_cover.is_file():
+        inner_html += f'<img src="{temp_cover}" alt="cover image" />\n'
+
+    inner_html += (
+        f'<p>editing: {filename.name}</p>\n'
         '<form action="/download" method="POST">\n'
         f'<input type="hidden" name="filename" value="{filename}" />\n'
     )
@@ -75,6 +81,6 @@ async def download(filename: str = Form(...)):
     if Path(filename).parent != Path("upload"):
         return HTMLResponse(template.replace("{{ body }}", f"bad request: {filename}"))
 
-    inner_html = f"downloading: {filename}"
+    inner_html = f"downloading: {Path(filename).name}"
 
     return HTMLResponse(template.replace("{{ body }}", inner_html))
