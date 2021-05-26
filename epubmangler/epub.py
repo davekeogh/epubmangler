@@ -50,7 +50,7 @@ class EPub:
     version: str
 
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, tempdir: Optional[str] = None) -> None:
         """Open an epub file and load its metadata into memory for editing."""
 
         self.tempdir = None
@@ -100,7 +100,7 @@ class EPub:
             self.add(name, text)
 
 
-    def add(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
+    def add(self, name: str, text: str, attrib: Optional[Dict[str, str]] = None) -> None:
         """Adds a new element to the metadata section of the tree."""
 
         try:
@@ -303,7 +303,7 @@ class EPub:
         self.modified = True
 
 
-    def set(self, name: str, text: str = None, attrib: Dict[str, str] = None) -> None:
+    def set(self, name: str, text: str, attrib: Optional[Dict[str, str]] = None) -> None:
         """Sets the text and attribs of an element."""
 
         if not attrib:
@@ -341,7 +341,7 @@ class EPub:
         self.modified = True
 
 
-    def set_identifier(self, name: str, scheme: str = None) -> None:
+    def set_identifier(self, name: str, scheme: Optional[str] = None) -> None:
         """Sets the epub's identifier. This is generally the book's ISBN or a URI."""
 
         id_num = self.etree.getroot().attrib['unique-identifier']
@@ -364,7 +364,7 @@ class EPub:
         self.modified = True
 
 
-    def parse_opf(self, modified: bool = False) -> None:
+    def parse_opf(self, modified: Optional[bool] = False) -> None:
         """Loads the opf file into memory. This is used on initialization, and may be of use
         if the file is edited from another process."""
 
@@ -380,7 +380,7 @@ class EPub:
             raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
 
 
-    def save_opf(self, path: str = None) -> None:
+    def save_opf(self, path: Optional[str] = None) -> None:
         """Serializes the `ElementTree` object to `path` or `self.opf` if no path is specified."""
 
         if not path:
@@ -409,7 +409,7 @@ class EPub:
             opf.write(text)
 
 
-    def save(self, path: str, overwrite: bool = False) -> None:
+    def save(self, path: str, overwrite: Optional[bool] = False) -> None:
         """Saves the opened EPub with the modified metadata to the file specified in `path`.
         If you want to overwrite an existing file set `overwrite=True`."""
 
