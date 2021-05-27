@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from tempfile import TemporaryDirectory as TempDir
 from types import TracebackType
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, Sequence
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from .functions import (file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces,
@@ -361,6 +361,23 @@ class EPub:
         # Work around ElementTree issue: https://bugs.python.org/issue17088 (See comment in save)
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
+        self.modified = True
+
+
+    def extend(self, metadata: Sequence[ET.Element]) -> None:
+        """Extends the current metadata by appending elements from `metadata`."""
+
+        self.etree.getroot().find('./opf:metadata', NAMESPACES).extend(metadata)
+        self.metadata.extend(metadata)
+        self.modified = True
+
+
+    def update(self, metadata: Sequence[ET.Element]) -> None:
+        """Replace the entirety of the metadata section of the tree with `metadata`."""
+
+        self.etree.getroot().find('./opf:metadata', NAMESPACES).clear()
+        self.etree.getroot().find('./opf:metadata', NAMESPACES).extend(metadata)
+        self.metadata = metadata
         self.modified = True
 
 
