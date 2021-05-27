@@ -1,13 +1,13 @@
 body {
   font-family: Arial;
-  color: white;
-  background: black;
+  color: #000000;
+  background: #EAE7DC;
 }
 
 em {
   font-style: italic;
   font-weight: bold;
-  color: orange;
+  color: #E98074;
 }
 
 form.upload {
@@ -19,14 +19,14 @@ form.upload {
   width: 500px;
   height: 200px;
   border-radius: 4px;
-  border: 2px dashed white;
+  border: 2px dashed #D8C3A5;
 }
 
 form.upload p {
   width: 100%;
   height: 100%;
   text-align: center;
-  line-height: 170px;
+  line-height: 40px;
 }
 
 form.upload input[type="file"] {
@@ -42,14 +42,14 @@ form.upload input[type="file"] {
 form button[type="submit"] {
   margin: 0;
   font-weight: bold;
-  color: white;
-  background: orangered;
+  color: #EAE7DC;
+  background: #E85A4F;
   width: 508px;
   height: 35px;
   margin-top: -20px;
   margin-left: -4px;
   border-radius: 4px;
-  border: 2px solid white;
+  border: 2px solid #E98074;
   transition: all 0.2s ease;
   outline: none;
 }
@@ -59,9 +59,9 @@ form button.delete {
   font-weight: bold;
   outline: none;
   border-radius: 2px;
-  border: 1px solid white;
-  color: white;
-  background: maroon;
+  border: 1px solid #8E8D8A;
+  color: #EAE7DC;
+  background: #E85A4F;
 }
 
 form button.add {
@@ -69,15 +69,15 @@ form button.add {
   font-weight: bold;
   outline: none;
   border-radius: 2px;
-  border: 1px solid white;
-  color: white;
-  background: goldenrod;
+  border: 1px solid #8E8D8A;
+  color: #EAE7DC;
+  background: #E98074;
 }
 
 form button:hover {
   /* TODO: Do some transformation on the current colors */
-  background:orange;
-  color: black;
+  background:#D8C3A5;
+  color: #000000;
 }
 
 form button:active {
