@@ -27,11 +27,11 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             os.remove(FILENAME)
 
     def test_get(self):
-        self.assertRaises(NameError, self.book.get, 'nothing')
+        self.assertRaises(epubmangler.epub.EPubError, self.book.get, 'nothing')
         self.assertIsInstance(self.book.get('title'), ET.Element)
 
     def test_get_all(self):
-        self.assertRaises(NameError, self.book.get_all, 'nothing')
+        self.assertRaises(epubmangler.epub.EPubError, self.book.get_all, 'nothing')
 
         for item in self.book.get_all('date'):
             self.assertIsInstance(item, ET.Element)
@@ -59,10 +59,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.assertEqual('zzz', self.book.get('creator').attrib['ddd'])
         self.book.set('creator', 'aaa', {'ddd': 'zzz'})
 
-        self.book.set('creator', 'a long name with many parts')
-        self.assertEqual('parts, a long name with many', self.book.get('creator').attrib['opf:file-as'])
-
-        self.assertRaises(NameError, self.book.set, 'nope', 'nope')
+        self.assertRaises(epubmangler.epub.EPubError, self.book.set, 'nope', 'nope')
 
         self.book.set('language', 'en', {'xsi:type': 'dcterms:RFC4646'})
 
@@ -76,7 +73,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
 
     def test_remove(self):
         self.book.remove('title')
-        self.assertRaises(NameError, self.book.get, 'title')
+        self.assertRaises(epubmangler.epub.EPubError, self.book.get, 'title')
 
     def test_add_remove_subject(self):
         len1 = len(self.book.get_all('subject'))
@@ -97,7 +94,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
         self.assertIsInstance(self.book['title'], ET.Element)
         try:
             self.book['nothing']
-        except NameError:
+        except epubmangler.epub.EPubError:
             pass
 
     def test_context_handler(self):
@@ -105,7 +102,7 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             book.metadata
 
     def test_init(self):
-        self.assertRaises(ValueError, epubmangler.EPub, 'notafile')
+        self.assertRaises(epubmangler.epub.EPubError, epubmangler.EPub, 'notafile')
         # TODO: Need some bad epub files to test here
 
 

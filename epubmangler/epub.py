@@ -96,7 +96,7 @@ class EPub:
 
         try:
             self.get(name).text = text
-        except NameError:
+        except EPubError:
             self.add(name, text)
 
 
