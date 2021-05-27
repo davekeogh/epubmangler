@@ -7,7 +7,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
 from .globals import ILLEGAL_CHARS, NAMESPACES
@@ -79,6 +79,19 @@ def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
         return text
 
     return f"{{{namespaces[ns]}}}{text}"
+
+
+def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Element:
+    """Returns a new `ElementTree.Element` with `tag`, `text` and `attrib` attributes."""
+
+    e = ET.Element()
+    e.tag = tag
+    e.text = text
+
+    if attrib:
+        e.attrib = attrib
+
+    return e
 
 
 def sizeof_format(file: str) -> str:
