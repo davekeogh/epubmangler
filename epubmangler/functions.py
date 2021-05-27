@@ -82,7 +82,11 @@ def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
 
 
 def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Element:
-    """Returns a new `ElementTree.Element` with `tag`, `text` and `attrib` attributes."""
+    """Returns a new `ElementTree.Element` with `tag`, `text` and `attrib` attributes.
+
+    `new_element("creator", "Some Name", {"opf:role": "aut", "opf:file-as": "Name, Some"})`
+
+    returns `<dc:creator opf:file-as="Name, Some" opf:role="aut">Some Name</dc:creator>`"""
 
     e = ET.Element()
     e.tag = tag
@@ -112,6 +116,7 @@ def strip_namespace(text: str) -> str:
     This just returns the third element of `text.rpartition('}')`
 
     `'{http://purl.org/dc/elements/1.1/}creator'.rpartition('}')`
+
     returns `('{http://purl.org/dc/elements/1.1/', '}', 'creator')`
 
     Therefore, `text.rpartition('}')[2]`, will usually be the text without the namespace."""
