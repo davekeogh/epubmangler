@@ -86,14 +86,17 @@ def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Ele
 
     `new_element("creator", "Some Name", {"opf:role": "aut", "opf:file-as": "Name, Some"})`
 
-    returns `<dc:creator opf:file-as="Name, Some" opf:role="aut">Some Name</dc:creator>`"""
+    returns an `ElementTree.Element` object that represents the following xml:
+
+    `<dc:creator opf:file-as="Name, Some" opf:role="aut">Some Name</dc:creator>`"""
 
     e = ET.Element()
-    e.tag = tag
+    e.tag = namespaced_text(f'dc:{tag}')
     e.text = text
 
     if attrib:
-        e.attrib = attrib
+        for a in attrib:
+            e.attrib[namespaced_text(a)] = attrib[a]
 
     return e
 

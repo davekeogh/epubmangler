@@ -3,3 +3,5 @@
 from .epub import *
 from .functions import *
 from .globals import *
+
+__version__ = VERSION
