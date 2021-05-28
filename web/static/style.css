@@ -10,6 +10,40 @@ em {
   color: #E98074;
 }
 
+img#cover {
+  width: 25%;
+  height: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 90%;
+}
+
+th {
+  border: 1px solid #D8C3A5;
+  padding: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #E98074;
+  color: white;
+}
+
+th.blank {
+  border: none;
+  background-color: #EAE7DC;
+}
+
+td {
+  border: 1px solid #D8C3A5;
+  padding: 8px;
+}
+
+td.blank {
+  border: none;
+}
+
 form.upload {
   position: absolute;
   top: 50%;
@@ -54,7 +88,7 @@ form button[type="submit"] {
   outline: none;
 }
 
-form button.delete {
+form button {
   margin: 0;
   font-weight: bold;
   outline: none;
@@ -64,16 +98,6 @@ form button.delete {
   background: #E85A4F;
 }
 
-form button.add {
-  margin: 0;
-  font-weight: bold;
-  outline: none;
-  border-radius: 2px;
-  border: 1px solid #8E8D8A;
-  color: #EAE7DC;
-  background: #E98074;
-}
-
 form button:hover {
   /* TODO: Do some transformation on the current colors */
   background:#D8C3A5;
@@ -81,5 +105,5 @@ form button:hover {
 }
 
 form button:active {
-  border: none;
+  border: 1px solid #D8C3A5;
 }
