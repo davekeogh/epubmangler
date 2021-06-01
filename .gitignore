@@ -13,6 +13,7 @@ books/
 
 # Test artifacts:
 test/
+web/upload/
 content.opf
 example/Frankenstein 2.epub
 test.epub
