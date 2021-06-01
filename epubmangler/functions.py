@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 
 import xml.etree.ElementTree as ET
@@ -68,6 +69,16 @@ def is_epub(path: str) -> bool:
                 return file_handle.read(20) == b'application/epub+zip'
         else:
             return False
+
+
+def json_to_dict(input: str) -> Dict[str, str]:
+    """A wrapper around `json.loads` that returns an empty dictionary rather than
+    raising an exception."""
+
+    try:
+        return json.loads(input.replace("'", '"'))
+    except json.decoder.JSONDecodeError:
+        return {}  # TODO: Handle errors
 
 
 def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
