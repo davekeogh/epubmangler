@@ -15,6 +15,17 @@ img#cover {
   height: auto;
 }
 
+input#cover-upload {
+  /* TODO: Height needs to be set to img height on load */
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  width: 25%;
+  height: 50%;
+  outline: none;
+  opacity: 0;
+}
+
 table {
   border-collapse: collapse;
   width: 90%;
