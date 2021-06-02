@@ -4,7 +4,7 @@
 import time
 from epubmangler import EPub
 
-with EPub('Frankenstein.epub') as book: # https://gutenberg.org/ebooks/84
+with EPub('Frankenstein.epub') as book:  # https://gutenberg.org/ebooks/84
 
     # Get information about a book
     language = book.get('language')

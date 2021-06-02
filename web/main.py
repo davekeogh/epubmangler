@@ -1,6 +1,5 @@
 """A simple web application using epubmangler"""
 
-import json
 import os
 import re
 import shutil
@@ -12,6 +11,8 @@ from xml.etree.ElementTree import Element
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+
+import uvicorn
 
 from epubmangler import EPub, EPubError, json_to_dict, strip_namespace
 
@@ -142,3 +143,7 @@ async def download(request: Request):
 
     # return TemplateResponse(f'Downloading: {Path(epub.file).name}...')
     return FileResponse(Path(form['filename']), filename=Path(form['filename']).name)
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host="127.0.0.1", port=8000)
