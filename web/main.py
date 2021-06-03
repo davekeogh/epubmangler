@@ -38,9 +38,7 @@ async def main():
 
 @app.post('/edit', response_class=HTMLResponse)
 async def edit(file: UploadFile = File(...)):
-    filename = Path("upload", file.filename)
-
-    with open(filename, 'wb') as temp:
+    with open(filename := Path("upload", file.filename), 'wb') as temp:
         temp.write(await file.read())
 
     try:
@@ -53,7 +51,7 @@ async def edit(file: UploadFile = File(...)):
         '<div id="content">\n'
         f'<h1>Editing: {filename.name}</h1>\n'
         "<p>Pro tip: Don't touch the <em>Attrib</em> column, unless you know what you are doing.</p>"
-        '<form action="/download" method="POST">'
+        '<form action="/download" method="post">'
         f'<input type="hidden" name="filename" value="{filename}" />\n'
     )
 
@@ -88,7 +86,7 @@ async def edit(file: UploadFile = File(...)):
             )
 
         if item.attrib:
-            html += f'<td><input type="text" name="{item.tag}-attrib" value="{item.attrib}" /></td>'
+            html += f'<td><input type="text" name="{item.tag}-attrib" value="{str(item.attrib)}" /></td>'
         else:
             html += f'<td><input type="text" name="{item.tag}-attrib" /></td>'
 
