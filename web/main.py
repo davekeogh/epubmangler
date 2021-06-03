@@ -3,8 +3,12 @@
 import os
 import re
 import shutil
+import time
 import uuid
 
+import uvicorn
+
+from multiprocessing import Process
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
@@ -12,12 +16,44 @@ from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-import uvicorn
-
 from epubmangler import EPub, EPubError, json_to_dict, strip_namespace
 
+INFO, WARNING, ERROR = 0, 1, 2
 
-# Run in conjunction with tidy.py !!!
+
+def log(message, level: int = INFO, pid: int = None):
+    """Prints a message that will blend in with the ones made by uvicorn."""
+
+    if level == INFO:
+        message = f'\u001b[32mINFO\u001b[0m:     {message}'
+    elif level == WARNING:
+        message = f'\u001b[33mWARNING\u001b[0m:     {message}'
+    elif level == ERROR:
+        message = f'\u001b[31mERROR\u001b[0m:     {message}'
+
+    if pid:
+        message += ' [\u001b[36m' + str(p.pid) + '\u001b[0m]'
+
+    print(message)
+
+
+def tidy(sleep_length: int = 600):
+    """Remove all files in the upload directory on a regular basis.
+    `sleep_length` is the number of seconds to sleep."""
+
+    while True:
+        for file in os.listdir(Path('upload')):
+            if file != 'image' and os.stat(Path('upload', file)).st_mtime > sleep_length:
+                os.remove(Path('upload', file))
+
+        for file in os.listdir(Path('upload/image')):
+            if os.stat(Path('upload/image', file)).st_mtime > sleep_length:
+                os.remove(Path('upload/image', file))
+
+        try:
+            time.sleep(sleep_length)
+        except KeyboardInterrupt:
+            break
 
 
 class TemplateResponse(HTMLResponse):
@@ -106,8 +142,9 @@ async def edit(file: UploadFile = File(...)):
 @app.post('/download', response_class=FileResponse)
 async def download(request: Request):
     form = await request.form()
+    filename = form['filename']
 
-    if Path(form['filename']).parent != Path('upload'):
+    if Path(filename).parent != Path('upload'):
         return TemplateResponse(f'bad request: {form}')
 
     epub = EPub(Path(form['filename']))
@@ -137,11 +174,15 @@ async def download(request: Request):
         element.attrib = json_to_dict(form[f'{prefix}-attrib'])
 
     epub.update(items)
-    epub.save(Path(form['filename']), overwrite=True)
+    epub.save(Path(filename), overwrite=True)
 
     # return TemplateResponse(f'Downloading: {Path(epub.file).name}...')
-    return FileResponse(Path(form['filename']), filename=Path(form['filename']).name)
+    return FileResponse(Path(filename), filename=Path(filename).name)
 
 
 if __name__ == '__main__':
+    p = Process(target=tidy)
+    p.start()
+    log('Started tidy process', pid=p.pid)
     uvicorn.run(app, host="127.0.0.1", port=8000)
+    log('Finished tidy process', pid=p.pid)
