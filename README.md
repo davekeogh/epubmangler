@@ -9,7 +9,6 @@ Requires: Python 3.8
 ## Example usage
 
 ```python
-import time
 from epubmangler import EPub
 
 with EPub('Frankenstein.epub') as book:  # https://gutenberg.org/ebooks/84
@@ -26,7 +25,6 @@ with EPub('Frankenstein.epub') as book:  # https://gutenberg.org/ebooks/84
     # Add and remove elements
     book.add('contributor', 'epubmangler', {'opf:role' : 'bkp'})
     book.remove('date', {'opf:event' : 'conversion'})
-    book.add('date', time.strftime('%F'), {'opf:event' : 'conversion'})
 
     # Add and remove subjects
     book.add_subject('Sequel')
