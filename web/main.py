@@ -19,10 +19,12 @@ from fastapi.staticfiles import StaticFiles
 from epubmangler import EPub, EPubError, json_to_dict, strip_namespace
 
 INFO, WARNING, ERROR = 0, 1, 2
+UPLOAD = Path('upload')
+STATIC = Path('static')
 
 
-def log(message, level: int = INFO, pid: int = None):
-    """Prints a message that will blend in with the ones made by uvicorn."""
+def log(message: str, level: int = INFO, pid: int = None):
+    """Prints a message that looks kind of like the ones made by uvicorn."""
 
     if level == INFO:
         message = f'\u001b[32mINFO\u001b[0m:     {message}'
@@ -39,16 +41,17 @@ def log(message, level: int = INFO, pid: int = None):
 
 def tidy(sleep_length: int = 600):
     """Remove all files in the upload directory on a regular basis.
-    `sleep_length` is the number of seconds to sleep."""
+    
+    `sleep_length` is the number of seconds to sleep after each iteration."""
 
     while True:
-        for file in os.listdir(Path('upload')):
-            if file != 'image' and os.stat(Path('upload', file)).st_mtime > sleep_length:
-                os.remove(Path('upload', file))
+        for file in os.listdir(UPLOAD):
+            if file != 'image' and os.stat(Path(UPLOAD, file)).st_mtime > sleep_length:
+                os.remove(Path(UPLOAD, file))
 
-        for file in os.listdir(Path('upload/image')):
-            if os.stat(Path('upload/image', file)).st_mtime > sleep_length:
-                os.remove(Path('upload/image', file))
+        for file in os.listdir(Path(UPLOAD, 'image')):
+            if os.stat(Path(UPLOAD, 'image', file)).st_mtime > sleep_length:
+                os.remove(Path(UPLOAD, 'image', file))
 
         try:
             time.sleep(sleep_length)
@@ -57,24 +60,26 @@ def tidy(sleep_length: int = 600):
 
 
 class TemplateResponse(HTMLResponse):
-    template:str = open(Path('static/template.html'), 'r').read()
+    template:str = open(Path(STATIC, 'template.html'), 'r').read()
     def __init__(self, html: str) -> None:
         HTMLResponse.__init__(self, self.template.replace('{{body}}', html))
 
 
 app = FastAPI()
-app.mount('/static', StaticFiles(directory='static'), name='static')
-app.mount('/upload', StaticFiles(directory='upload'), name='upload')
+app.mount('/static', StaticFiles(directory=STATIC), name='static')
+app.mount('/upload', StaticFiles(directory=UPLOAD), name='upload')
 
 
 @app.get('/', response_class=HTMLResponse)
 async def main():
-    return HTMLResponse(open(Path('static/main.html'), 'r').read())
+    return HTMLResponse(open(Path(STATIC, 'main.html'), 'r').read())
 
 
 @app.post('/edit', response_class=HTMLResponse)
 async def edit(file: UploadFile = File(...)):
-    with open(filename := Path("upload", file.filename), 'wb') as temp:
+    filename = UPLOAD / file.filename
+
+    with open(filename, 'wb') as temp:
         temp.write(await file.read())
 
     try:
@@ -96,7 +101,7 @@ async def edit(file: UploadFile = File(...)):
         temp_cover = Path()
 
         if cover_path.is_file():
-            temp_cover = Path('upload/image', f'{uuid.uuid4()}{cover_path.suffix}')
+            temp_cover = UPLOAD / 'image' / f'{uuid.uuid4()}{cover_path.suffix}'
             shutil.copy(cover_path, temp_cover)
 
         if temp_cover.is_file():
@@ -142,18 +147,18 @@ async def edit(file: UploadFile = File(...)):
 @app.post('/download', response_class=FileResponse)
 async def download(request: Request):
     form = await request.form()
-    filename = form['filename']
+    filename = Path(form['filename'])
 
-    if Path(filename).parent != Path('upload'):
+    if filename.parent != UPLOAD:
         return TemplateResponse(f'bad request: {form}')
 
-    epub = EPub(Path(form['filename']))
+    epub = EPub(form['filename'])
     items = []
     new_items = []
 
-    for field in form.keys():  # TODO: Refactor to use match in 3.10+
+    for field in form.keys():
         if field.endswith('-text') or field.endswith('-attrib') or field == 'filename':
-            continue
+            continue  # TODO: Refactor to use match in 3.10+
         elif field == 'cover-upload':
             try:
                 epub.set_cover(form['cover-upload'])
@@ -174,15 +179,15 @@ async def download(request: Request):
         element.attrib = json_to_dict(form[f'{prefix}-attrib'])
 
     epub.update(items)
-    epub.save(Path(filename), overwrite=True)
+    epub.save(filename, overwrite=True)
 
     # return TemplateResponse(f'Downloading: {Path(epub.file).name}...')
-    return FileResponse(Path(filename), filename=Path(filename).name)
+    return FileResponse(filename, filename=filename.name)
 
 
 if __name__ == '__main__':
     p = Process(target=tidy)
     p.start()
-    log('Started tidy process', pid=p.pid)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-    log('Finished tidy process', pid=p.pid)
+    log('Started tidy process', level=INFO, pid=p.pid)
+    uvicorn.run(app, host='127.0.0.1', port=8000)
+    log('Finished tidy process', level=INFO, pid=p.pid)

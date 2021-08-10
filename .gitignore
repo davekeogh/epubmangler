@@ -3,6 +3,7 @@ venv/
 build/
 dist/
 htmlcov/
+node_modules/
 *.py[cod]
 *.egg-info
 .coverage

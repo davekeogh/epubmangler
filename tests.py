@@ -10,8 +10,8 @@ import xml.etree.ElementTree as ET
 import epubmangler
 
 # Select a book from local selection of epubs
-DIR = 'books/gutenberg'
-# DIR = 'books/calibre'
+DIR = '/home/david/Projects/epubmangler/books/gutenberg'
+# DIR = '/home/david/Projects/epubmangler/books/calibre'
 BOOKS = os.listdir(DIR)
 BOOK = Path(DIR, random.choice(BOOKS))
 FILENAME = 'testtesttest.epub'
@@ -98,8 +98,8 @@ class EPub2GutenbergTestCase(unittest.TestCase):
             pass
 
     def test_context_handler(self):
-        with epubmangler.EPub(BOOK) as book:
-            book.metadata
+        with epubmangler.EPub(BOOK) as _book:
+            pass
 
     def test_init(self):
         self.assertRaises(epubmangler.epub.EPubError, epubmangler.EPub, 'notafile')

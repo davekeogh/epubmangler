@@ -27,7 +27,7 @@ from types import TracebackType
 from typing import Dict, List, Optional, Type, Sequence
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .functions import (file_as, find_opf_files, is_epub, namespaced_text, strip_namespaces,
+from .functions import (find_opf_files, is_epub, namespaced_text, strip_namespaces,
                         strip_illegal_chars)
 from .globals import XPATHS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
 
@@ -112,7 +112,7 @@ class EPub:
         except NameError:
             pass
 
-        element = ET.Element(namespaced_text(f'dc:{name}'))  # Add the dc: namespace to everything?
+        element = ET.Element(namespaced_text(f'dc:{name}'))
         element.text = text
         if attrib:
             element.attrib = attrib
@@ -405,6 +405,11 @@ class EPub:
 
         path = strip_illegal_chars(path)
 
+        try:  # Tidy the XML (added in Python 3.9)
+            ET.indent(self.etree)
+        except AttributeError:
+            pass
+        
         self.etree.write(path, xml_declaration=True, encoding='utf-8', method='xml')
 
         # Work around an old issue in ElementTree:
@@ -419,9 +424,7 @@ class EPub:
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
         text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
-
-        # TODO: Tidy XML before saving?
-        # ElementTree has an indent function in Python 3.9, use that?
+        
         with open(path, 'w') as opf:
             opf.write(text)
 

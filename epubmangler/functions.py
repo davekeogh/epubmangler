@@ -40,13 +40,13 @@ def find_opf_files(path: str) -> List[str]:
     the specification states that there could be."""
 
     with open(Path(path, 'META-INF/container.xml')) as container:
-        xmlstring = container.read()
+        xml_string = container.read()
 
     # Remove the default namespace definition (xmlns="http://some/namespace")
     # https://stackoverflow.com/questions/34009992/python-elementtree-default-namespace
-    xmlstring = re.sub(r'\sxmlns="[^"]+"', '', xmlstring, count=1)
+    xml_string = re.sub(r'\sxmlns="[^"]+"', '', xml_string, count=1)
 
-    root = ET.fromstring(xmlstring)
+    root = ET.fromstring(xml_string)
     files = []
 
     for item in root.findall('./rootfiles/rootfile'):
@@ -58,9 +58,9 @@ def find_opf_files(path: str) -> List[str]:
 def is_epub(path: str) -> bool:
     """Returns True if `path` points to a valid epub file."""
 
-    p = Path(path)
+    file_path = Path(path).absolute()
 
-    if not p.exists() or p.suffix != '.epub' or not is_zipfile(path):
+    if not file_path.exists() or file_path.suffix != '.epub' or not is_zipfile(file_path):
         return False
 
     with ZipFile(path, 'r', ZIP_DEFLATED) as zip_file:
@@ -85,11 +85,11 @@ def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
     """Returns the name and namespace formated for elementtree."""
 
     try:
-        ns, text = re.split(':', text)
+        namespace, text = re.split(':', text)
     except ValueError:
         return text
 
-    return f"{{{namespaces[ns]}}}{text}"
+    return f"{{{namespaces[namespace]}}}{text}"
 
 
 def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Element:
@@ -101,15 +101,15 @@ def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Ele
 
     `<dc:creator opf:file-as="Name, Some" opf:role="aut">Some Name</dc:creator>`"""
 
-    e = ET.Element()
-    e.tag = namespaced_text(f'dc:{tag}')
-    e.text = text
+    element = ET.Element()
+    element.tag = namespaced_text(f'dc:{tag}')
+    element.text = text
 
     if attrib:
         for a in attrib:
-            e.attrib[namespaced_text(a)] = attrib[a]
+            element.attrib[namespaced_text(a)] = attrib[a]
 
-    return e
+    return element
 
 
 def sizeof_format(file: str) -> str:
@@ -154,8 +154,10 @@ def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
 
 
 def strip_illegal_chars(path: str, replace: str = '-') -> str:
-    """Removes any characters from `path` that may cause file system errors on some cases."""
+    """Removes any characters from `path` that may cause file system errors with NTFS (Windows)."""
 
-    p = Path(path)
-    [p.name.replace(char, replace) for char in ILLEGAL_CHARS]
-    return p
+    file_path = Path(path)
+
+    [file_path.name.replace(char, replace) for char in ILLEGAL_CHARS]
+
+    return file_path
