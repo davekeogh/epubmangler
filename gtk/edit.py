@@ -105,7 +105,6 @@ class Application:
         buffer.connect('changed', lambda buffer, book:
                        self.book.set('description', buffer.get_text(buffer.get_start_iter(),
                                      buffer.get_end_iter(), True)), self.book)
-
         self.window.connect('delete-event', self.quit)
         self.get('quit_button').connect('clicked', self.quit)
         self.get('about_button').connect('clicked', self.about)
@@ -145,7 +144,10 @@ class Application:
         self.update_widgets()
         self.window.show()
 
-    # METHODS
+
+    # METHODS :
+
+
     def set_cover_image(self, path: str = None) -> None:
         if not path:
             path = self.book.get_cover()
@@ -242,7 +244,10 @@ class Application:
         with open(self.config, 'w') as config:
             json.dump({'warnings': self.warnings}, config, indent=4)
 
-    # IDLE FUNCTIONS
+
+    # IDLE FUNCTIONS :
+
+
     def volume_monitor_idle(self) -> bool:
         button = self.get('device_button')
 
@@ -287,7 +292,10 @@ class Application:
 
         return GLib.SOURCE_CONTINUE
 
-    # SIGNAL CALLBACKS
+
+    # SIGNAL CALLBACKS :
+
+
     def about(self, _button: Gtk.ModelButton) -> None:
         dialog = Gtk.AboutDialog()
         dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file_at_size(ICON, 64, 64))
@@ -402,6 +410,32 @@ class Application:
         [entry.set_text('') for entry in (self.get('tag_entry'),
                                           self.get('text_entry'),
                                           self.get('attrib_entry'))]
+    
+    def quit(self, _caller: Gtk.Widget, _event: Gdk.Event = None) -> None:
+        if self.book.modified and self.warnings:
+            dialog = Gtk.MessageDialog(text='File has unsaved changes',
+                                       message_type=Gtk.MessageType.QUESTION)
+            dialog.format_secondary_text('Do you want to save them?')
+            dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,
+                               Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+
+            if dialog.run() == Gtk.ResponseType.OK:
+                chooser = Gtk.FileChooserDialog(parent=self.window,
+                                                action=Gtk.FileChooserAction.SAVE)
+                chooser.set_current_name(Path(self.book.file).name)
+                chooser.set_do_overwrite_confirmation(True)
+                chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+
+                if chooser.run() == Gtk.ResponseType.OK:
+                    self.book.save(chooser.get_filename())
+
+                chooser.destroy()
+
+            dialog.destroy()
+
+        self.save_config()
+        Gtk.main_quit()
 
     def remove_element(self, _button: Gtk.Button) -> None:
         iter = self.get('details').get_selection().get_selected()[1]
@@ -422,7 +456,7 @@ class Application:
             self.book.remove_subject(self.subjects.get_value(iter, 0))
             self.subjects.remove(iter)
 
-    def save(self, _b: Gtk.Button) -> None:
+    def save(self, button: Gtk.Button) -> None:
         dialog = Gtk.FileChooserDialog(parent=self.window, action=Gtk.FileChooserAction.SAVE)
         dialog.set_current_name(Path(self.book.file).name)
         dialog.set_do_overwrite_confirmation(True)
@@ -443,6 +477,7 @@ class Application:
         if dialog.run() == Gtk.ResponseType.OK:
             self.book.save(dialog.get_filename(), overwrite=True)
             self.book.modified = False
+            button.get_style_context().remove_class('suggested-action')
 
         dialog.destroy()
 
@@ -473,32 +508,6 @@ class Application:
         button.set_property('active', not current)
         self.warnings = current
         self.get('infobar').set_visible(current)
-
-    def quit(self, _caller: Gtk.Widget, _event: Gdk.Event = None) -> None:
-        if self.book.modified and self.warnings:
-            dialog = Gtk.MessageDialog(text='File has unsaved changes',
-                                       message_type=Gtk.MessageType.QUESTION)
-            dialog.format_secondary_text('Do you want to save them?')
-            dialog.add_buttons(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE,
-                               Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-
-            if dialog.run() == Gtk.ResponseType.OK:
-                chooser = Gtk.FileChooserDialog(parent=self.window,
-                                                action=Gtk.FileChooserAction.SAVE)
-                chooser.set_current_name(Path(self.book.file).name)
-                chooser.set_do_overwrite_confirmation(True)
-                chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                    Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-
-                if chooser.run() == Gtk.ResponseType.OK:
-                    self.book.save(chooser.get_filename())
-
-                chooser.destroy()
-
-            dialog.destroy()
-
-        self.save_config()
-        Gtk.main_quit()
 
 
 # Entry point
