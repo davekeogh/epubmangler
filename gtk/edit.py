@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 """A GTK interface to the epubmangler library."""
 
-import json
-import mimetypes
-import os
-import random
-import sys
-import time
+import json, mimetypes, os, random, sys, time
 
 from pathlib import Path
 from xml.etree.ElementTree import Element
@@ -37,7 +32,16 @@ class Application:
     mtime_cache: float = 0
 
     def __init__(self, filename: str) -> None:
-        self.book = EPub(filename)
+        try:
+            self.book = EPub(filename)
+        except EPubError as error:
+            dialog = Gtk.MessageDialog(text='EPub Error', message_type=Gtk.MessageType.ERROR)
+            dialog.format_secondary_text(f'{error}')
+            dialog.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+            dialog.run()
+            
+            raise error
+
         self.get = self.builder.get_object
         self.window = self.get('window')
         self.window.set_title(Path(self.book.file).name)

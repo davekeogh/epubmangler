@@ -56,7 +56,7 @@ class EPub:
         self.tempdir = None
 
         if not is_epub(path):
-            raise EPubError(f"{path} does not appear to be a valid .epub file.")
+            raise EPubError(f"{path} does not appear to be a valid EPub file.")
 
         self.file = path
         self.tempdir = TempDir(prefix='epubmangler-')
