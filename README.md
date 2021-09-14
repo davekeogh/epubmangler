@@ -1,8 +1,8 @@
 # epubmangler
 
-Tools to modify the metadata of EPUB files
+Tools to read and modify the metadata of EPUB files.
 
-Documentation TBA. See `example/rename_epubs.py` and `gtk/edit.py` for now.
+Documentation to be written. See the minimal example below and others in the `example` directory.
 
 Requires: Python 3.8
 
@@ -16,6 +16,7 @@ with EPub('Frankenstein.epub') as book:  # https://gutenberg.org/ebooks/84
     # Get information about a book
     language = book.get('language')
     subjects = book.get_all('subject')
+    book.pretty_print()
 
     # Modify existing elements
     book.set('title', 'Frankenstein 2')

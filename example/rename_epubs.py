@@ -17,7 +17,7 @@ def rename_file(path: str) -> None:
 
     file_name = f'{author} - {title}.epub'
 
-    # Some characters are not allowed in filenames especially on Windows
+    # Some characters are not allowed in filenames, especially on Windows
     for char in ILLEGAL_CHARS:
         file_name = file_name.replace(char, '-')
 

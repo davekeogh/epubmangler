@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import pprint
 import shutil
+import sys
 import time
 
 import xml.etree.ElementTree as ET
@@ -24,10 +26,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from tempfile import TemporaryDirectory as TempDir
 from types import TracebackType
-from typing import Dict, List, Optional, Type, Sequence
+from typing import Dict, List, Optional, TextIO, Type, Sequence
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from .functions import (find_opf_files, is_epub, namespaced_text, strip_namespaces,
+from .functions import (find_opf_files, is_epub, namespaced_text, strip_namespace, strip_namespaces,
                         strip_illegal_chars)
 from .globals import XPATHS, NAMESPACES, IMAGE_TYPES, TIME_FORMAT
 
@@ -118,6 +120,7 @@ class EPub:
             element.attrib = attrib
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
@@ -151,6 +154,7 @@ class EPub:
 
         self.etree.find('./opf:metadata', NAMESPACES).append(metadata_element)
         self.etree.find('./opf:manifest', NAMESPACES).append(manifest_element)
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
@@ -165,6 +169,7 @@ class EPub:
         element.text = name
 
         self.etree.find('./opf:metadata', NAMESPACES).append(element)
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
@@ -277,7 +282,7 @@ class EPub:
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
         """Removes an element from the tree. Books can have more than one date or creator element.
-        Use attrib to get extra precision in these cases."""
+        Use `attrib` to get extra precision in these cases."""
 
         elements = self.get_all(name)
 
@@ -290,6 +295,7 @@ class EPub:
             else:
                 self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
 
+            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
             self.modified = True
 
 
@@ -300,11 +306,12 @@ class EPub:
             if subject.text == name:
                 self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(subject)
 
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
     def set(self, name: str, text: str, attrib: Optional[Dict[str, str]] = None) -> None:
-        """Sets the text and attribs of an element."""
+        """Sets the text and attributes of an existing element."""
 
         if not attrib:
             element = self.get(name)
@@ -325,11 +332,12 @@ class EPub:
                 element.text = text
                 element.attrib = attrib
 
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
     def set_cover(self, path: str) -> None:
-        """Replaces the cover image of the book with `path` provided it is an image."""
+        """Replaces the cover image of the book with `path`, provided it is valid image file."""
 
         mime = mimetypes.guess_type(path)[0]
         cover = self.get_cover()
@@ -338,6 +346,7 @@ class EPub:
             os.remove(cover)
             shutil.copy(path, cover)
 
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
@@ -358,9 +367,12 @@ class EPub:
             else:
                 scheme = 'ISBN'
 
-        # Work around ElementTree issue: https://bugs.python.org/issue17088 (See comment in save)
+        # Work around ElementTree issue: https://bugs.python.org/issue17088 
+        # See comment in save
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
+        
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
 
@@ -395,16 +407,33 @@ class EPub:
             raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
         except ET.ParseError:  # XML error
             raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
+    
+
+    def pretty_print(self, file: Optional[TextIO] = sys.stdout) -> None:
+        """Prints a simplified, user-readable overview of all metadata. Specifiy an output
+        location by setting `file` to a file-like object or stream."""
+
+        items = []
+
+        for element in self.metadata:
+            items.append({'tag' : strip_namespace(element.tag),
+                          'text' : element.text if element.text else '',
+                          'attrib' : strip_namespaces(element.attrib)})
+
+        pprint.pprint(items, stream=file, sort_dicts=False, indent=1)
 
 
-    def save_opf(self, path: Optional[str] = None) -> None:
-        """Serializes the `ElementTree` object to `path` or `self.opf` if no path is specified."""
+    def save(self, path: str, overwrite: Optional[bool] = False) -> None:
+        """Saves the opened EPub with the modified metadata to the file specified in `path`.
+        If you want to overwrite an existing file set `overwrite=True`."""
 
-        if not path:
-            path = self.opf
+        path = Path(strip_illegal_chars(path))
 
-        path = strip_illegal_chars(path)
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
+        self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
+        
         try:  # Tidy the XML (added in Python 3.9)
             ET.indent(self.etree)
         except AttributeError:
@@ -418,28 +447,15 @@ class EPub:
         # https://bugs.python.org/issue17088
         # https://github.com/python/cpython/pull/11050
 
-        with open(path, 'r') as f:
-            text = f.read()
+        with open(self.opf, 'r') as opf:
+            text = opf.read()
 
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
         text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
         
-        with open(path, 'w') as opf:
+        with open(self.opf, 'w') as opf:
             opf.write(text)
-
-
-    def save(self, path: str, overwrite: Optional[bool] = False) -> None:
-        """Saves the opened EPub with the modified metadata to the file specified in `path`.
-        If you want to overwrite an existing file set `overwrite=True`."""
-
-        path = Path(strip_illegal_chars(path))
-
-        if path.exists() and not overwrite:
-            raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
-
-        self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
-        self.save_opf()
 
         with ZipFile(path, 'w', ZIP_DEFLATED) as zip_file:
             for root, _dirs, files in os.walk(self.tempdir.name):

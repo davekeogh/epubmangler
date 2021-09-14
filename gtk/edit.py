@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""A GTK interface to the epubmangler library."""
+"""A GTK application to modify the metadata of an ebook with the epubmangler library."""
 
 import json, mimetypes, os, random, sys, time
 
@@ -22,7 +22,7 @@ ICON = str(RESOURCE_DIR / 'epubmangler.svg')
 
 class Application:
 
-    book: EPub
+    book: EPub = None
     builder: Gtk.Builder = Gtk.Builder.new_from_file(BUILDER)
     details: Gtk.ListStore = Gtk.ListStore(str, str, str)
     subjects: Gtk.ListStore = Gtk.ListStore(str)
@@ -98,12 +98,10 @@ class Application:
         try:
             description_text = self.book.get('description').text
         except EPubError:
-            description_text = None
+            description_text = ""
 
         buffer = self.get('description').get_buffer()
-
-        if description_text:
-            buffer.set_text(description_text)
+        buffer.set_text(description_text)
 
         # Signal connection
         buffer.connect('changed', lambda buffer, book:
