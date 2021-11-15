@@ -51,8 +51,7 @@ class EPub:
     tempdir: TempDir
     version: str
 
-
-    def __init__(self, path: str, tempdir: Optional[str] = None) -> None:
+    def __init__(self, path: str) -> None:
         """Open an epub file and load its metadata into memory for editing."""
 
         self.tempdir = None
@@ -68,18 +67,16 @@ class EPub:
 
         self.parse_opf()
 
-
     def __del__(self) -> None:
 
         if self.tempdir:
             self.tempdir.cleanup()
 
-
     # The next two methods enable context manager support
+
     def __enter__(self) -> EPub:
 
         return self
-
 
     def __exit__(self, _type: Optional[Type[BaseException]], _value: Optional[BaseException],
                  _traceback: Optional[TracebackType]) -> bool:
@@ -87,12 +84,11 @@ class EPub:
         self.__del__()
         return False  # Raise any thrown exception before exiting
 
-
     # The next two methods make the object subscriptable like a Dict
+
     def __getitem__(self, name: str) -> ET.Element:
 
         return self.get(name)
-
 
     def __setitem__(self, name: str, text: str) -> None:
 
@@ -100,7 +96,6 @@ class EPub:
             self.get(name).text = text
         except EPubError:
             self.add(name, text)
-
 
     def add(self, name: str, text: str, attrib: Optional[Dict[str, str]] = None) -> None:
         """Adds a new element to the metadata section of the tree."""
@@ -123,7 +118,6 @@ class EPub:
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
-
     def add_cover(self, path: str) -> None:
         """Adds a cover element and the required additional metadata."""
 
@@ -134,7 +128,8 @@ class EPub:
         mime = mimetypes.guess_type(path)[0]
 
         if mime not in IMAGE_TYPES or not Path(path).exists():
-            raise EPubError(f"{Path(self.file).name} is not a valid image file.")
+            raise EPubError(
+                f"{Path(self.file).name} is not a valid image file.")
 
         based = Path(self.opf).parent
         filename = Path(based, f'cover{Path(path).suffix}')
@@ -144,7 +139,8 @@ class EPub:
         manifest_element = ET.Element('item')
 
         if self.version == '3.0':
-            metadata_element.attrib = {'name': 'cover', 'content': 'cover-image'}
+            metadata_element.attrib = {
+                'name': 'cover', 'content': 'cover-image'}
             manifest_element.attrib = {'id': 'cover-image', 'properties': 'cover-image',
                                        'href': filename.name, 'media-type': mime}
         else:
@@ -156,7 +152,6 @@ class EPub:
         self.etree.find('./opf:manifest', NAMESPACES).append(manifest_element)
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
-
 
     def add_subject(self, name: str) -> None:
         """Adds a subject to the tree. This will do nothing if the subject already exists."""
@@ -172,7 +167,6 @@ class EPub:
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
-
     def get(self, name: str) -> ET.Element:
         """This will return the first matching element. Use get_all if you expect
         multiple elements to exist. There are usually several subject tags for instance."""
@@ -181,8 +175,8 @@ class EPub:
 
         try:
             xpaths = XPATHS[name]
-        except KeyError:
-            raise EPubError(f"Unrecognized element: '{name}'")
+        except KeyError as key_error:
+            raise EPubError(f"Unrecognized element: '{name}'") from key_error
 
         for xpath in xpaths:
             element = self.etree.getroot().find(xpath, NAMESPACES)
@@ -194,7 +188,6 @@ class EPub:
 
         return element
 
-
     def get_all(self, name: str) -> List[ET.Element]:
         """Returns a list of all the matching elements. There are often multiple date
         and subject tags for instance."""
@@ -203,8 +196,8 @@ class EPub:
 
         try:
             xpaths = XPATHS[name]
-        except KeyError:
-            raise EPubError(f"Unrecognized element: '{name}'")
+        except KeyError as key_error:
+            raise EPubError(f"Unrecognized element: '{name}'") from key_error
 
         for xpath in xpaths:
             # ET.Element can evaluate as False, so we need test that element is not None
@@ -212,7 +205,6 @@ class EPub:
                            self.etree.getroot().findall(xpath, NAMESPACES))
 
         return list(elements)
-
 
     def get_cover(self) -> str:
         """Returns the full path of the cover image in the temporary directory.
@@ -234,12 +226,13 @@ class EPub:
         # element leftover. We look at all of them until we find a matching item in the manifest.
         def epub2() -> str:
             for item in self.get_all('cover'):
-                id = item.attrib['content']
+                element = item.attrib['content']
 
-                if id is not None:
+                if element is not None:
                     try:
-                        name = self.etree.getroot().find(f"./opf:manifest/opf:item/[@id=\"{id}\"]",
-                                                         NAMESPACES).attrib['href']
+                        cover_xpath = f"./opf:manifest/opf:item/[@id=\"{element}\"]"
+                        name = self.etree.getroot().find(
+                            cover_xpath, NAMESPACES).attrib['href']
 
                         return Path(based, name)
 
@@ -248,11 +241,11 @@ class EPub:
 
             return None
 
-
         def epub3() -> str:
             try:
                 cover_xpath = "./opf:manifest/opf:item/[@properties=\"cover-image\"]"
-                name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
+                name = self.etree.getroot().find(
+                    cover_xpath, NAMESPACES).attrib['href']
 
                 return Path(based, name)
 
@@ -273,12 +266,10 @@ class EPub:
         else:
             return None
 
-
     def has_element(self, name: str) -> bool:
         """Returns True if the EPub has a matching element. Otheriwse, returns False."""
 
         return bool(self.get_all(name))
-
 
     def remove(self, name: str, attrib: Dict[str, str] = None) -> None:
         """Removes an element from the tree. Books can have more than one date or creator element.
@@ -286,18 +277,18 @@ class EPub:
 
         elements = self.get_all(name)
 
-        if len(elements):
+        if elements:
             if attrib:
                 for element in elements:
                     if attrib == strip_namespaces(element.attrib):
                         self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(element)
 
             else:
-                self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
+                self.etree.getroot().find(
+                    './opf:metadata', NAMESPACES).remove(elements[0])
 
             self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
             self.modified = True
-
 
     def remove_subject(self, name: str) -> None:
         """Removes a subject element from the tree."""
@@ -308,7 +299,6 @@ class EPub:
 
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
-
 
     def set(self, name: str, text: str, attrib: Optional[Dict[str, str]] = None) -> None:
         """Sets the text and attributes of an existing element."""
@@ -335,7 +325,6 @@ class EPub:
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
 
-
     def set_cover(self, path: str) -> None:
         """Replaces the cover image of the book with `path`, provided it is valid image file."""
 
@@ -348,7 +337,6 @@ class EPub:
 
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
-
 
     def set_identifier(self, name: str, scheme: Optional[str] = None) -> None:
         """Sets the epub's identifier. This is generally the book's ISBN or a URI."""
@@ -367,14 +355,13 @@ class EPub:
             else:
                 scheme = 'ISBN'
 
-        # Work around ElementTree issue: https://bugs.python.org/issue17088 
+        # Work around ElementTree issue: https://bugs.python.org/issue1708
         # See comment in save
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
-        
+
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.modified = True
-
 
     def extend(self, metadata: Sequence[ET.Element]) -> None:
         """Extends the current metadata by appending elements from `metadata`."""
@@ -382,7 +369,6 @@ class EPub:
         self.etree.getroot().find('./opf:metadata', NAMESPACES).extend(metadata)
         self.metadata.extend(metadata)
         self.modified = True
-
 
     def update(self, metadata: Sequence[ET.Element]) -> None:
         """Replace the entirety of the metadata section of the tree with `metadata`."""
@@ -392,22 +378,25 @@ class EPub:
         self.metadata = metadata
         self.modified = True
 
-
     def parse_opf(self, modified: Optional[bool] = False) -> None:
         """Loads the opf file into memory. This is used on initialization, and may be of use
         if the file is edited from another process."""
 
         try:
             self.opf = find_opf_files(self.tempdir.name)[0]
+        except IndexError as index_error:  # No OPF found
+            raise EPubError(
+                f"{self.file} does not appear to be a valid .epub file.") from index_error
+
+        try:
             self.etree = ET.parse(self.opf)
-            self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
-            self.version = self.etree.getroot().attrib['version']
-            self.modified = modified
-        except IndexError:  # No OPF found
-            raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
-        except ET.ParseError:  # XML error
-            raise EPubError(f"{self.file} does not appear to be a valid .epub file.")
-    
+        except ET.ParseError as parse_error:  # XML error
+            raise EPubError(
+                f"{self.file} does not appear to be a valid .epub file.") from parse_error
+
+        self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
+        self.version = self.etree.getroot().attrib['version']
+        self.modified = modified
 
     def pretty_print(self, file: Optional[TextIO] = sys.stdout) -> None:
         """Prints a simplified, user-readable overview of all metadata. Specifiy an output
@@ -416,12 +405,11 @@ class EPub:
         items = []
 
         for element in self.metadata:
-            items.append({'tag' : strip_namespace(element.tag),
-                          'text' : element.text if element.text else '',
-                          'attrib' : strip_namespaces(element.attrib)})
+            items.append({'tag': strip_namespace(element.tag),
+                          'text': element.text if element.text else '',
+                          'attrib': strip_namespaces(element.attrib)})
 
         pprint.pprint(items, stream=file, sort_dicts=False, indent=1)
-
 
     def save(self, path: str, overwrite: Optional[bool] = False) -> None:
         """Saves the opened EPub with the modified metadata to the file specified in `path`.
@@ -430,16 +418,18 @@ class EPub:
         path = Path(strip_illegal_chars(path))
 
         if path.exists() and not overwrite:
-            raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
+            raise FileExistsError(
+                f"{path} already exists. Use overwrite=True if you're serious.")
 
         self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
-        
+
         try:  # Tidy the XML (added in Python 3.9)
             ET.indent(self.etree)
         except AttributeError:
             pass
-        
-        self.etree.write(path, xml_declaration=True, encoding='utf-8', method='xml')
+
+        self.etree.write(path, xml_declaration=True,
+                         encoding='utf-8', method='xml')
 
         # Work around an old issue in ElementTree:
         # ElementTree incorrectly refuses to write attributes without namespaces
@@ -452,8 +442,9 @@ class EPub:
 
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
-        text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
-        
+        text = text.replace(
+            '<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
+
         with open(self.opf, 'w') as opf:
             opf.write(text)
 
@@ -461,6 +452,7 @@ class EPub:
             for root, _dirs, files in os.walk(self.tempdir.name):
                 for name in files:
                     full_path = Path(root, name)
-                    zip_file.write(full_path, full_path.relative_to(self.tempdir.name))
+                    zip_file.write(
+                        full_path, full_path.relative_to(self.tempdir.name))
 
         self.modified = False
