@@ -355,7 +355,7 @@ class EPub:
             else:
                 scheme = 'ISBN'
 
-        # Work around ElementTree issue: https://bugs.python.org/issue1708
+        # Work around ElementTree issue: https://bugs.python.org/issue17088
         # See comment in save
         del element.attrib[f"{{{NAMESPACES['opf']}}}scheme"]
         element.attrib['opf:scheme'] = scheme
