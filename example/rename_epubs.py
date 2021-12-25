@@ -3,10 +3,13 @@
 
 import os, sys, timeit
 from pathlib import Path
-from epubmangler import EPub, is_epub, ILLEGAL_CHARS
+from epubmangler import EPub, EPubError, is_epub, ILLEGAL_CHARS
 
 def rename_file(path: str) -> None:
-    book = EPub(full_path)
+    try:
+        book = EPub(path)
+    except EPubError:
+        return;
 
     try:
         title = book.get('title').text
@@ -23,8 +26,8 @@ def rename_file(path: str) -> None:
 
     new_file = Path(DIR, file_name)
 
-    if new_file != full_path:
-        os.rename(full_path, new_file)
+    if new_file != path:
+        os.rename(path, new_file)
 
 
 if __name__ == '__main__':
@@ -38,10 +41,10 @@ if __name__ == '__main__':
     TIME = 0
 
     for file in os.listdir(DIR):
-        full_path = Path(DIR, file)
+        path = Path(DIR, file)
 
-        if is_epub(full_path):
+        if is_epub(path):
             FILES += 1
-            TIME += timeit.timeit(stmt='rename_file(full_path)', setup='from __main__ import rename_file, full_path', number=1)
+            TIME += timeit.timeit(stmt='rename_file(path)', setup='from __main__ import rename_file, path', number=1)
 
     print(f'Read {FILES} files in {round(TIME, 3)}s')
