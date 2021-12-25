@@ -54,12 +54,12 @@ class EPub:
     def __init__(self, path: str) -> None:
         """Open an epub file and load its metadata into memory for editing."""
 
+        self.file = path
         self.tempdir = None
 
         if not is_epub(path):
             raise EPubError(f"{path} does not appear to be a valid EPub file.")
-
-        self.file = path
+        
         self.tempdir = TempDir(prefix='epubmangler-')
 
         with ZipFile(self.file, 'r', ZIP_DEFLATED) as zip_file:
@@ -128,8 +128,7 @@ class EPub:
         mime = mimetypes.guess_type(path)[0]
 
         if mime not in IMAGE_TYPES or not Path(path).exists():
-            raise EPubError(
-                f"{Path(self.file).name} is not a valid image file.")
+            raise EPubError(f"{Path(self.file).name} is not a valid image file.")
 
         based = Path(self.opf).parent
         filename = Path(based, f'cover{Path(path).suffix}')
@@ -139,8 +138,7 @@ class EPub:
         manifest_element = ET.Element('item')
 
         if self.version == '3.0':
-            metadata_element.attrib = {
-                'name': 'cover', 'content': 'cover-image'}
+            metadata_element.attrib = {'name': 'cover', 'content': 'cover-image'}
             manifest_element.attrib = {'id': 'cover-image', 'properties': 'cover-image',
                                        'href': filename.name, 'media-type': mime}
         else:
@@ -192,8 +190,6 @@ class EPub:
         """Returns a list of all the matching elements. There are often multiple date
         and subject tags for instance."""
 
-        elements: List[ET.Element]
-
         try:
             xpaths = XPATHS[name]
         except KeyError as key_error:
@@ -231,8 +227,7 @@ class EPub:
                 if element is not None:
                     try:
                         cover_xpath = f"./opf:manifest/opf:item/[@id=\"{element}\"]"
-                        name = self.etree.getroot().find(
-                            cover_xpath, NAMESPACES).attrib['href']
+                        name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
 
                         return Path(based, name)
 
@@ -243,9 +238,8 @@ class EPub:
 
         def epub3() -> str:
             try:
-                cover_xpath = "./opf:manifest/opf:item/[@properties=\"cover-image\"]"
-                name = self.etree.getroot().find(
-                    cover_xpath, NAMESPACES).attrib['href']
+                cover_xpath = f"./opf:manifest/opf:item/[@properties=\"cover-image\"]"
+                name = self.etree.getroot().find(cover_xpath, NAMESPACES).attrib['href']
 
                 return Path(based, name)
 
@@ -284,8 +278,7 @@ class EPub:
                         self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(element)
 
             else:
-                self.etree.getroot().find(
-                    './opf:metadata', NAMESPACES).remove(elements[0])
+                self.etree.getroot().find('./opf:metadata', NAMESPACES).remove(elements[0])
 
             self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
             self.modified = True
@@ -344,7 +337,6 @@ class EPub:
         id_num = self.etree.getroot().attrib['unique-identifier']
         element = self.etree.getroot().find(f"./opf:metadata/dc:identifier/[@id=\"{id_num}\"]",
                                             NAMESPACES)
-
         element.text = name
 
         if not scheme:  # TODO: Improve this detection
@@ -382,17 +374,17 @@ class EPub:
         """Loads the opf file into memory. This is used on initialization, and may be of use
         if the file is edited from another process."""
 
+        error_message = f"{self.file} does not appear to be a valid .epub file."
+
         try:
             self.opf = find_opf_files(self.tempdir.name)[0]
         except IndexError as index_error:  # No OPF found
-            raise EPubError(
-                f"{self.file} does not appear to be a valid .epub file.") from index_error
+            raise EPubError(error_message) from index_error
 
         try:
             self.etree = ET.parse(self.opf)
         except ET.ParseError as parse_error:  # XML error
-            raise EPubError(
-                f"{self.file} does not appear to be a valid .epub file.") from parse_error
+            raise EPubError(error_message) from parse_error
 
         self.metadata = self.etree.getroot().findall('./opf:metadata/*', NAMESPACES)
         self.version = self.etree.getroot().attrib['version']
@@ -418,8 +410,7 @@ class EPub:
         path = Path(strip_illegal_chars(path))
 
         if path.exists() and not overwrite:
-            raise FileExistsError(
-                f"{path} already exists. Use overwrite=True if you're serious.")
+            raise FileExistsError(f"{path} already exists. Use overwrite=True if you're serious.")
 
         self.add('date', time.strftime(TIME_FORMAT), {'event': 'modified'})
 
@@ -428,8 +419,7 @@ class EPub:
         except AttributeError:
             pass
 
-        self.etree.write(path, xml_declaration=True,
-                         encoding='utf-8', method='xml')
+        self.etree.write(path, xml_declaration=True, encoding='utf-8', method='xml')
 
         # Work around an old issue in ElementTree:
         # ElementTree incorrectly refuses to write attributes without namespaces
@@ -442,8 +432,7 @@ class EPub:
 
         text = text.replace('ns0:', '')
         text = text.replace(':ns0', ':opf')
-        text = text.replace(
-            '<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
+        text = text.replace('<package ', '<package xmlns=\"http://www.idpf.org/2007/opf\" ')
 
         with open(self.opf, 'w') as opf:
             opf.write(text)
@@ -452,7 +441,6 @@ class EPub:
             for root, _dirs, files in os.walk(self.tempdir.name):
                 for name in files:
                     full_path = Path(root, name)
-                    zip_file.write(
-                        full_path, full_path.relative_to(self.tempdir.name))
+                    zip_file.write(full_path, full_path.relative_to(self.tempdir.name))
 
         self.modified = False

@@ -21,9 +21,11 @@ from epubmangler import EPub, EPubError, json_to_dict, strip_namespace
 INFO, WARNING, ERROR = 0, 1, 2
 UPLOAD = Path('upload')
 STATIC = Path('static')
+INDEX = Path(STATIC, 'main.html')
+TEMPLATE = Path(STATIC, 'template.html')
 
 
-def log(message: str, level: int = INFO, pid: int = None):
+def log(message: str, level: int = INFO, pid: int = None) -> None:
     """Prints a message that looks kind of like the ones made by uvicorn."""
 
     if level == INFO:
@@ -39,7 +41,7 @@ def log(message: str, level: int = INFO, pid: int = None):
     print(message)
 
 
-def tidy(sleep_length: int = 600):
+def tidy(sleep_length: int = 600) -> None:
     """Remove all files in the upload directory on a regular basis.
     
     `sleep_length` is the number of seconds to sleep after each iteration."""
@@ -60,7 +62,8 @@ def tidy(sleep_length: int = 600):
 
 
 class TemplateResponse(HTMLResponse):
-    template:str = open(Path(STATIC, 'template.html'), 'r').read()
+    """"""
+    template:str = open(TEMPLATE, 'r').read()
     def __init__(self, html: str) -> None:
         HTMLResponse.__init__(self, self.template.replace('{{body}}', html))
 
@@ -71,12 +74,12 @@ app.mount('/upload', StaticFiles(directory=UPLOAD), name='upload')
 
 
 @app.get('/', response_class=HTMLResponse)
-async def main():
-    return HTMLResponse(open(Path(STATIC, 'main.html'), 'r').read())
+async def main() -> HTMLResponse:
+    return HTMLResponse(open(INDEX, 'r').read())
 
 
-@app.post('/edit', response_class=HTMLResponse)
-async def edit(file: UploadFile = File(...)):
+@app.post('/edit', response_class=TemplateResponse)
+async def edit(file: UploadFile = File(...)) -> TemplateResponse:
     filename = UPLOAD / file.filename
 
     with open(filename, 'wb') as temp:
@@ -84,15 +87,18 @@ async def edit(file: UploadFile = File(...)):
 
     try:
         epub = EPub(filename)
-    except ValueError:
+    except EPubError:
         os.remove(filename)
-        return TemplateResponse(f'not an epub: {filename}')
+        return TemplateResponse(f"""Not a valid epub file: {filename}\n\n
+            Create an issue at 
+            <a href="https://github.com/davekeogh/epubmangler/issues">https://github.com/davekeogh/epubmangler/issues</a> 
+            if your epub is not supported properly. Sorry!""")
 
     html = (
         '<div id="content">\n'
         f'<h1>Editing: {filename.name}</h1>\n'
-        "<p>Pro tip: Don't touch the <em>Attrib</em> column, unless you know what you are doing.</p>"
-        '<form action="/download" method="post">'
+        '<p>Pro tip: Don\'t touch the <em>Attrib</em> column, unless you know what you are doing.</p>\n'
+        '<form action="/download" method="post">\n'
         f'<input type="hidden" name="filename" value="{filename}" />\n'
     )
 
@@ -145,7 +151,7 @@ async def edit(file: UploadFile = File(...)):
 
 
 @app.post('/download', response_class=FileResponse)
-async def download(request: Request):
+async def download(request: Request) -> FileResponse:
     form = await request.form()
     filename = Path(form['filename'])
 
