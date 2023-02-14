@@ -8,7 +8,7 @@ pkg-resources==0.0.0
 pydantic==1.8.2
 #PyGObject==3.40.1
 pylint==2.8.2
-starlette==0.14.2
+starlette==0.25.0
 toml==0.10.2
 typing-extensions==3.10.0.0
 wrapt==1.12.1
