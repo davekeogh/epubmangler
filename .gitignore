@@ -6,8 +6,13 @@ htmlcov/
 node_modules/
 *.py[cod]
 *.egg-info
-.coverage
-.vscode
+
+.venv/
+.jupyter/
+.ipynb_checkpoints/
+.coverage/
+.vscode/
+.idea/
 
 # Epub files for tests:
 books/
