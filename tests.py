@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Test all EPub methods against a random book from Project Gutenberg."""
 
-import os, unittest, random
+import os
+import unittest
+import random
 
 from pathlib import Path
 
@@ -16,6 +18,7 @@ BOOKS = os.listdir(DIR)
 BOOK = Path(DIR, random.choice(BOOKS))
 FILENAME = 'testtesttest.epub'
 
+# pylint: skip-file
 
 class EPub2GutenbergTestCase(unittest.TestCase):
 
@@ -107,5 +110,5 @@ class EPub2GutenbergTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    print(Path(BOOK).name)
+    print(BOOK.name)
     unittest.main(verbosity=2)

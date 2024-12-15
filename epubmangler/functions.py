@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import json
 import re
 
 import xml.etree.ElementTree as ET
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from zipfile import ZipFile, is_zipfile, ZIP_DEFLATED
 
 from .globals import ILLEGAL_CHARS, NAMESPACES
@@ -33,13 +34,13 @@ def file_as(name: str) -> str:
     return f'{parts[len(parts) - 1]}, {name}'
 
 
-def find_opf_files(path: str) -> List[str]:
+def find_opf_files(path: str | bytes | os.PathLike) -> List[str]:
     """Returns a list of all the OPF files as defined in: `META-INF/container.xml`
 
     We only ever use the first one, and no books seem to have more than one, but
     the specification states that there could be."""
 
-    with open(Path(path, 'META-INF/container.xml')) as container:
+    with open(Path(path, 'META-INF/container.xml'), mode='r', encoding='utf-8') as container:
         xml_string = container.read()
 
     # Remove the default namespace definition (xmlns="http://some/namespace")
@@ -55,7 +56,7 @@ def find_opf_files(path: str) -> List[str]:
     return files
 
 
-def is_epub(path: str) -> bool:
+def is_epub(path: str | bytes | os.PathLike) -> bool:
     """Returns True if `path` points to a valid epub file."""
 
     file_path = Path(path).absolute()
@@ -71,17 +72,17 @@ def is_epub(path: str) -> bool:
             return False
 
 
-def json_to_dict(input: str) -> Dict[str, str]:
+def json_to_dict(input_str: str) -> Dict[str, str]:
     """A wrapper around `json.loads` that returns an empty dictionary rather than
     raising an exception."""
 
     try:
-        return json.loads(input.replace("'", '"'))
+        return json.loads(input_str.replace("'", '"'))
     except json.decoder.JSONDecodeError:
         return {}  # TODO: Handle errors
 
 
-def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
+def namespaced_text(text: str) -> str:
     """Returns the name and namespace formated for elementtree."""
 
     try:
@@ -89,27 +90,13 @@ def namespaced_text(text: str, namespaces: Dict[str] = NAMESPACES) -> str:
     except ValueError:
         return text
 
-    return f"{{{namespaces[namespace]}}}{text}"
+    return f"{{{NAMESPACES[namespace]}}}{text}"
 
 
-def new_element(tag: str, text: str, attrib: Optional[Dict[str, str]]) -> ET.Element:
-    """Returns a new `ElementTree.Element` with `tag`, `text` and `attrib` attributes.
+def new_element(name: str, text: str, attrib: Dict[str, str] = None) -> ET.Element:
+    """Creates a new xml.etree.ElementTree.Element object and returns it."""
 
-    `new_element("creator", "Some Name", {"opf:role": "aut", "opf:file-as": "Name, Some"})`
-
-    returns an `ElementTree.Element` object that represents the following xml:
-
-    `<dc:creator opf:file-as="Name, Some" opf:role="aut">Some Name</dc:creator>`"""
-
-    element = ET.Element()
-    element.tag = namespaced_text(f'dc:{tag}')
-    element.text = text
-
-    if attrib:
-        for a in attrib:
-            element.attrib[namespaced_text(a)] = attrib[a]
-
-    return element
+    return ET.Element(namespaced_text(f'dc:{name}'), text=text, attrib=attrib)
 
 
 def sizeof_format(file: str) -> str:
@@ -121,8 +108,8 @@ def sizeof_format(file: str) -> str:
         if number < 1000:
             return f'{number:.1f} {prefix}B'
         number /= 1000
-    else:
-        return f'{number:.1f} ?B'
+
+    return f'{number:.1f} ?B'
 
 
 def strip_namespace(text: str) -> str:
@@ -140,7 +127,7 @@ def strip_namespace(text: str) -> str:
 
 def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
     """Strips the XML namespaces from all the keys in a dictionary.
-    See strip_namespace for more information."""
+    See `strip_namespace` for more information."""
 
     new_dict = {}
 
@@ -153,11 +140,12 @@ def strip_namespaces(attrib: Dict[str, str]) -> Dict[str, str]:
     return new_dict
 
 
-def strip_illegal_chars(path: str, replace: str = '-') -> str:
+def strip_illegal_chars(path: str | bytes | os.PathLike, replace: str = '-') -> str:
     """Removes any characters from `path` that may cause file system errors with NTFS (Windows)."""
 
     file_path = Path(path)
 
-    [file_path.name.replace(char, replace) for char in ILLEGAL_CHARS]
+    for character in ILLEGAL_CHARS:
+        file_path.name.replace(character, replace)
 
     return file_path

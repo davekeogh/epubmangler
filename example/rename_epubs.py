@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 """Rename epub files in a directory to `author - title.epub`."""
 
-import os, sys, timeit
+import os
+import sys
+import timeit
+
 from pathlib import Path
 from epubmangler import EPub, EPubError, is_epub, ILLEGAL_CHARS
 
-def rename_file(path: str) -> None:
+
+def rename_file(in_file: str | bytes | os.PathLike) -> None:
+    """Rename file to its EPub metadata or return."""
+
     try:
-        book = EPub(path)
+        book = EPub(in_file)
     except EPubError:
-        return;
+        return
 
     try:
         title = book.get('title').text
         author = book.get('creator').text
     except NameError:
-        print(f'No title or author metadata: {file}')
+        print(f'No title or author metadata: {in_file}')
         return
 
     file_name = f'{author} - {title}.epub'
@@ -24,10 +30,10 @@ def rename_file(path: str) -> None:
     for char in ILLEGAL_CHARS:
         file_name = file_name.replace(char, '-')
 
-    new_file = Path(DIR, file_name)
+    new_file = Path(file_name)
 
-    if new_file != path:
-        os.rename(path, new_file)
+    if new_file != in_file:
+        os.rename(in_file, new_file)
 
 
 if __name__ == '__main__':
@@ -41,10 +47,10 @@ if __name__ == '__main__':
     TIME = 0
 
     for file in os.listdir(DIR):
-        path = Path(DIR, file)
-
-        if is_epub(path):
+        if is_epub(Path(DIR, file)):
             FILES += 1
-            TIME += timeit.timeit(stmt='rename_file(path)', setup='from __main__ import rename_file, path', number=1)
+            TIME += timeit.timeit(stmt='rename_file(path)',
+                                  setup='from __main__ import rename_file, path',
+                                  number=1)
 
     print(f'Read {FILES} files in {round(TIME, 3)}s')
