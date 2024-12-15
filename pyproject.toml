@@ -21,7 +21,3 @@ Issues = "https://github.com/davekeogh/epubmangler/issues"
 
 [tool.setuptools]
 py-modules = ["epubmangler"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"

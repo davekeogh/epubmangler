@@ -41,6 +41,8 @@ class EPubError(Exception):
     """Exception that is raised when an error occurs during an `EPub` method."""
 
 
+# Use @property notation for editable fields
+
 class EPub:
     """A Python object representing an epub ebook's editable metadata."""
 

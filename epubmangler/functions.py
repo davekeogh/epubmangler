@@ -17,7 +17,7 @@ from .globals import ILLEGAL_CHARS, NAMESPACES
 
 def file_as(name: str) -> str:
     """Returns a human's name with the surname first, or tries to at least.
-    This may perform poorly with some names.
+    This may perform poorly with non-latin names.
 
     `file_as('Mary Wollstonecraft Shelley')` returns `'Shelley, Mary Wollstonecraft'`"""
 
